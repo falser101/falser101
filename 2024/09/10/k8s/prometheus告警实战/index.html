@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en" color-mode="light">
+
+  <head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="author" content="John Doe" />
+  <!-- Open Graph Description 简短摘要-->
+  
+  <!-- 用于搜索引擎的文章摘要 -->
+  
+  
+  
+  <title>
+    
+      prometheus告警实战 
+      
+      
+      |
+    
+     Hexo
+  </title>
+
+  
+    <link rel="apple-touch-icon" href="/images/favicon.png">
+    <link rel="icon" href="/images/favicon.png">
+  
+
+  <!-- Raleway-Font -->
+  <link href="https://fonts.googleapis.com/css?family=Raleway&display=swap" rel="stylesheet">
+
+  <!-- hexo site css -->
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="//at.alicdn.com/t/font_1886449_67xjft27j1l.css" />
+  <!-- 代码块风格 -->
+  
+
+  <!-- jquery3.3.1 -->
+  
+    <script defer type="text/javascript" src="/plugins/jquery.min.js"></script>
+  
+
+  <!-- fancybox -->
+  
+    <link href="/plugins/jquery.fancybox.min.css" rel="stylesheet">
+    <script defer type="text/javascript" src="/plugins/jquery.fancybox.min.js"></script>
+  
+  
+<script src="/js/fancybox.js"></script>
+
+
+  
+
+  
+
+  <script>
+    var html = document.documentElement
+    const colorMode = localStorage.getItem('color-mode')
+    if (colorMode) {
+      document.documentElement.setAttribute('color-mode', colorMode)
+    }
+  </script>
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+  <body>
+    <div id="app">
+      <div class="header">
+  <div class="avatar">
+    <a href="/">
+      <!-- 头像取消懒加载，添加no-lazy -->
+      
+        <img src="/images/avatar.png" alt="">
+      
+    </a>
+    <div class="nickname"><a href="/">Oranges</a></div>
+  </div>
+  <div class="navbar">
+    <ul>
+      
+        <li class="nav-item" data-path="/">
+          <a href="/">首页</a>
+        </li>
+      
+        <li class="nav-item" data-path="/archives/">
+          <a href="/archives/">归档</a>
+        </li>
+      
+        <li class="nav-item" data-path="/tags/">
+          <a href="/tags/">标签</a>
+        </li>
+      
+        <li class="nav-item" data-path="/about/">
+          <a href="/about/">关于</a>
+        </li>
+      
+    </ul>
+  </div>
+</div>
+
+
+<script src="/js/activeNav.js"></script>
+
+
+
+      <div class="flex-container">
+        <!-- 文章详情页，展示文章具体内容，url形式：https://yoursite/文章标题/ -->
+<!-- 同时为「标签tag」，「朋友friend」，「分类categories」，「关于about」页面的承载页面，具体展示取决于page.type -->
+
+
+  <!-- LaTex Display -->
+
+  
+    <script async type="text/javascript" src="/plugins/mathjax/tex-chtml.js"></script>
+  
+  <script>
+    MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']]
+      }
+    }
+  </script>
+
+
+
+
+
+  <!-- clipboard -->
+
+  
+    <script async type="text/javascript" src="/plugins/clipboard.min.js"></script>
+  
+  
+<script src="/js/codeCopy.js"></script>
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  <!-- 文章内容页 url形式：https://yoursite/文章标题/ -->
+  <div class="container post-details" id="post-details">
+    <div class="post-content">
+      <div class="post-title">prometheus告警实战</div>
+      <div class="post-attach">
+        <span class="post-pubtime">
+          <i class="iconfont icon-updatetime mr-10" title="Update time"></i>
+          2024-09-11 14:38:01
+        </span>
+        
+              <span class="post-tags">
+                <i class="iconfont icon-tags mr-10" title="Tags"></i>
+                
+                <span class="span--tag mr-8">
+                  <a href="/tags/%E7%9B%91%E6%8E%A7%E5%91%8A%E8%AD%A6/" title="监控告警">
+                    #监控告警
+                  </a>
+                </span>
+                
+              </span>
+          
+      </div>
+      <div class="markdown-body">
+        <h2 id="配置"><a href="#配置" class="headerlink" title="配置"></a>配置</h2><h3 id="alertmanager配置"><a href="#alertmanager配置" class="headerlink" title="alertmanager配置"></a>alertmanager配置</h3><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">global:</span></span><br><span class="line">  <span class="attr">resolve_timeout:</span> <span class="string">5m</span> <span class="comment"># 设置解决（resolve）告警的超时时间为5分钟。</span></span><br><span class="line"><span class="attr">route:</span></span><br><span class="line">  <span class="attr">group_by:</span> [<span class="string">&#x27;alertname&#x27;</span>] <span class="comment"># 告警按照 alertname 分组。</span></span><br><span class="line">  <span class="attr">group_wait:</span> <span class="string">10s</span> <span class="comment"># 每个分组等待10秒，以便将相关的告警聚合在一起。</span></span><br><span class="line">  <span class="attr">group_interval:</span> <span class="string">10s</span> <span class="comment"># 每个分组之间的间隔时间为10秒。</span></span><br><span class="line">  <span class="attr">repeat_interval:</span> <span class="string">1h</span> <span class="comment"># 告警的重复间隔时间为1小时。</span></span><br><span class="line">  <span class="attr">receiver:</span> <span class="string">&#x27;webhook&#x27;</span> <span class="comment"># 默认的接收器是 &#x27;webhook&#x27;。</span></span><br><span class="line">  <span class="attr">routes:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">match:</span></span><br><span class="line">      <span class="attr">cluster:</span> <span class="string">&#x27;tlq-cn&#x27;</span> <span class="comment"># 满足条件的使用这个接收器</span></span><br><span class="line">    <span class="attr">receiver:</span> <span class="string">&#x27;webhook&#x27;</span></span><br><span class="line"><span class="attr">receivers:</span> <span class="comment"># 定义接收器</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">name:</span> <span class="string">&#x27;webhook&#x27;</span></span><br><span class="line">  <span class="attr">webhook_configs:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">url:</span> <span class="string">&#x27;http://127.0.0.1:5001/&#x27;</span></span><br><span class="line"><span class="attr">inhibit_rules:</span> <span class="comment"># 定义抑制规则，用于在某些条件下抑制告警</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">source_match:</span></span><br><span class="line">      <span class="attr">severity:</span> <span class="string">&#x27;critical&#x27;</span> <span class="comment"># 如果源告警的严重性为 &#x27;critical&#x27;。</span></span><br><span class="line">    <span class="attr">target_match:</span></span><br><span class="line">      <span class="attr">severity:</span> <span class="string">&#x27;warning&#x27;</span> <span class="comment"># 如果目标告警的严重性为 &#x27;warning&#x27;</span></span><br><span class="line">    <span class="attr">equal:</span> [<span class="string">&#x27;alertname&#x27;</span>, <span class="string">&#x27;dev&#x27;</span>, <span class="string">&#x27;instance&#x27;</span>] <span class="comment"># 源告警和目标告警必须在这些标签上相等才会触发抑制。</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="Prometheus配置"><a href="#Prometheus配置" class="headerlink" title="Prometheus配置"></a>Prometheus配置</h3><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">global:</span></span><br><span class="line">  <span class="attr">scrape_interval:</span> <span class="string">15s</span> <span class="comment"># 采集间隔为15秒。</span></span><br><span class="line">  <span class="attr">evaluation_interval:</span> <span class="string">15s</span> <span class="comment"># 评估间隔为15秒。</span></span><br><span class="line"><span class="attr">rule_files:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">/home/prometheus/rule/*.yml</span> <span class="comment"># 下面配置的告警规则文件路径</span></span><br><span class="line"><span class="attr">alerting:</span></span><br><span class="line">  <span class="attr">alert_relabel_configs:</span> <span class="comment"># : 配置了动态修改 alert 属性的规则。</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">source_labels:</span> [<span class="string">dc</span>] <span class="comment"># 使用标签 dc 作为源标签。</span></span><br><span class="line">    <span class="attr">regex:</span> <span class="string">(.+)\d+</span> <span class="comment"># 使用正则表达式从源标签中提取数据，并且去掉结尾的数字。</span></span><br><span class="line">    <span class="attr">target_label:</span> <span class="string">dc1</span> <span class="comment"># 将提取的数据赋值给目标标签 dc1。</span></span><br><span class="line">  <span class="attr">alertmanagers:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">static_configs:</span> <span class="comment"># 静态配置，指定了 Alertmanager 的地址为 localhost:9093。</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">targets:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">localhost:9093</span></span><br><span class="line"><span class="attr">scrape_configs:</span></span><br><span class="line"><span class="comment"># 联邦集群配置</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">job_name:</span> <span class="string">&#x27;federate&#x27;</span></span><br><span class="line">  <span class="attr">scrape_interval:</span> <span class="string">15s</span></span><br><span class="line">  <span class="attr">honor_labels:</span> <span class="literal">true</span></span><br><span class="line">  <span class="attr">metrics_path:</span> <span class="string">&#x27;/federate&#x27;</span></span><br><span class="line">  <span class="attr">params:</span></span><br><span class="line">    <span class="string">&#x27;match[]&#x27;</span><span class="string">:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">&#x27;&#123;job=&quot;prometheus&quot;&#125;&#x27;</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">&#x27;&#123;job=&quot;broker&quot;&#125;&#x27;</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">&#x27;&#123;job=&quot;bookie&quot;&#125;&#x27;</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">&#x27;&#123;job=&quot;zookeeper&quot;&#125;&#x27;</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">&#x27;&#123;job=&quot;proxy&quot;&#125;&#x27;</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">&#x27;&#123;job=&quot;node-exporter&quot;&#125;&#x27;</span></span><br><span class="line">  <span class="attr">static_configs:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">targets:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">&#x27;10.10.22.162:52119&#x27;</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">job_name:</span> <span class="string">&#x27;prometheus&#x27;</span> <span class="comment"># 任务名称。</span></span><br><span class="line">  <span class="attr">static_configs:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">targets:</span> [<span class="string">&#x27;localhost:9090&#x27;</span>] <span class="comment"># 采集prometheus自身。</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">job_name:</span> <span class="string">&#x27;node&#x27;</span> <span class="comment"># 任务名称。</span></span><br><span class="line">  <span class="attr">static_configs:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">targets:</span> [<span class="string">&#x27;localhost:9100&#x27;</span>] <span class="comment"># 采集本机。</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="告警规则"><a href="#告警规则" class="headerlink" title="告警规则"></a>告警规则</h3><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">groups:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">alert.rules</span> <span class="comment"># 告警规则组名称</span></span><br><span class="line">    <span class="attr">rules:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">alert:</span> <span class="string">InstanceDown</span> <span class="comment"># 告警的名称，命名为 InstanceDown</span></span><br><span class="line">        <span class="attr">expr:</span> <span class="string">up</span> <span class="string">==</span> <span class="number">0</span> <span class="comment"># 触发告警的表达式，如果 up 的值为 0，表示实例处于宕机状态。</span></span><br><span class="line">        <span class="attr">for:</span> <span class="string">1m</span> <span class="comment"># 即当满足条件并持续1分钟时触发告警</span></span><br><span class="line">        <span class="attr">labels:</span> <span class="comment"># 标签，用于标识告警的一些元信息</span></span><br><span class="line">          <span class="attr">severity:</span> <span class="string">critical</span> <span class="comment"># 告警的严重性标签，设置为 &#x27;critical&#x27;。</span></span><br><span class="line">        <span class="attr">annotations:</span> <span class="comment"># 注释，提供更详细的描述信息。</span></span><br><span class="line">          <span class="attr">summary:</span> <span class="string">&quot;<span class="template-variable">&#123;&#123; $labels.instance &#125;&#125;</span>: no data for 1 minute&quot;</span> <span class="comment"># 摘要信息，描述实例在1分钟内没有数据。</span></span><br><span class="line">          <span class="attr">description:</span> <span class="string">&quot;<span class="template-variable">&#123;&#123; $labels.instance &#125;&#125;</span> of job <span class="template-variable">&#123;&#123; $labels.job &#125;&#125;</span> has been down for more than 1 minute.&quot;</span> <span class="comment"># 描述信息，指明哪个作业的哪个实例在1分钟以上处于宕机状态。</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="启动服务"><a href="#启动服务" class="headerlink" title="启动服务"></a>启动服务</h2><h3 id="启动-Prometheus"><a href="#启动-Prometheus" class="headerlink" title="启动 Prometheus"></a>启动 Prometheus</h3><p>参数<code>--web.enable-lifecycle</code>的作用是启用 Prometheus 的热加载功能，允许通过 HTTP 接口动态加载和卸载规则文件。<br>当我们修改了 Prometheus 的配置文件或者规则文件，需要重新加载配置文件，可以通过 POST 请求 <code>/-/reload</code> 接口实现。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">启动服务</span></span><br><span class="line">./prometheus --config.file=prometheus.yml --web.enable-lifecycle</span><br></pre></td></tr></table></figure>
+
+<h3 id="启动-Alertmanager"><a href="#启动-Alertmanager" class="headerlink" title="启动 Alertmanager"></a>启动 Alertmanager</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">启动服务</span></span><br><span class="line">./alertmanager --config.file=alertmanager.yml</span><br></pre></td></tr></table></figure>
+<p>当我们修改了Alertmanager的配置文件，需要重新加载配置文件，可以通过 POST 请求 <code>/-/reload</code> 接口实现。</p>
+<h2 id="查看Prometheus"><a href="#查看Prometheus" class="headerlink" title="查看Prometheus"></a>查看Prometheus</h2><p>在浏览器输入localhost:9090，即可看到Prometheus的监控页面。点击alerts，可以看到当前告警信息。如下图所示<br><img src="/imgs/2023/k8s/07/alerts.png" alt="Alerts"></p>
+<h3 id="状态值"><a href="#状态值" class="headerlink" title="状态值"></a>状态值</h3><ul>
+<li>Inactive（未激活）：Alert 的初始状态，表示规则条件尚未满足。</li>
+<li>Pending（等待）：表示 Alert 已经被触发，但是在确认一定时间内保持在 Pending 状态，以防止短时间内的噪声或瞬时问题。</li>
+<li>Firing（触发）：表示 Alert 已经被确认，规则条件持续满足。</li>
+</ul>
+<h3 id="热加载"><a href="#热加载" class="headerlink" title="热加载"></a>热加载</h3><p>修改Prometheus规则文件,将expr表达式修改<code>up&#123;job=&#39;broker&#39;&#125;</code></p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">groups:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">alert.rules</span> <span class="comment"># 告警规则组名称</span></span><br><span class="line">    <span class="attr">rules:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">alert:</span> <span class="string">InstanceDown</span> <span class="comment"># 告警的名称，命名为 InstanceDown</span></span><br><span class="line">        <span class="attr">expr:</span> <span class="string">up&#123;job=&#x27;broker&#x27;&#125;</span> <span class="string">==</span> <span class="number">1</span> <span class="comment"># 触发告警的表达式，如果 up&#123;job=&#x27;broker&#x27;&#125; 的值为 1，表示实例处于启动状态。</span></span><br><span class="line">        <span class="attr">for:</span> <span class="string">1m</span> <span class="comment"># 即当满足条件并持续1分钟时触发告警</span></span><br><span class="line">        <span class="attr">labels:</span> <span class="comment"># 标签，用于标识告警的一些元信息</span></span><br><span class="line">          <span class="attr">severity:</span> <span class="string">critical</span> <span class="comment"># 告警的严重性标签，设置为 &#x27;critical&#x27;。</span></span><br><span class="line">        <span class="attr">annotations:</span> <span class="comment"># 注释，提供更详细的描述信息。</span></span><br><span class="line">          <span class="attr">summary:</span> <span class="string">&quot;<span class="template-variable">&#123;&#123; $labels.instance &#125;&#125;</span>: no data for 1 minute&quot;</span> <span class="comment"># 摘要信息，描述实例在1分钟内没有数据。</span></span><br><span class="line">          <span class="attr">description:</span> <span class="string">&quot;<span class="template-variable">&#123;&#123; $labels.instance &#125;&#125;</span> of job <span class="template-variable">&#123;&#123; $labels.job &#125;&#125;</span> has been down for more than 1 minute.&quot;</span> <span class="comment"># 描述信息，指明哪个作业的哪个实例在1分钟以上处于宕机状态。</span></span><br></pre></td></tr></table></figure>
+
+<p>修改后调用POST请求<code>http://localhost:9090/-/reload</code>，即可更新Prometheus的规则文件。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -X POST http://localhost:9090/-/reload</span><br></pre></td></tr></table></figure>
+
+<p>再次查看alerts，可以看到告警信息已经更新了。<br><img src="/imgs/2023/k8s/07/alerts-update.png" alt="Alerts"></p>
+<h2 id="查看Alertmanager"><a href="#查看Alertmanager" class="headerlink" title="查看Alertmanager"></a>查看Alertmanager</h2><p>在浏览器输入localhost:9093，即可看到Alertmanager的监控页面。点击alerts，可以看到当前告警信息。如下图所示<br><img src="/imgs/2023/k8s/07/alertmanager.png" alt="Alerts"></p>
+<p>可以看到告警信息已经发送到Alertmanager，并且被Alertmanager处理了。</p>
+
+      </div>
+      
+        <div class="prev-or-next">
+          <div class="post-foot-next">
+            
+              <a href="/2024/08/14/linux/2024/01.archlinux%E5%AE%89%E8%A3%85waydroid/" target="_self">
+                <i class="iconfont icon-chevronleft"></i>
+                <span>Prev</span>
+              </a>
+            
+          </div>
+          <div class="post-attach">
+            <span class="post-pubtime">
+              <i class="iconfont icon-updatetime mr-10" title="Update time"></i>
+              2024-09-11 14:38:01
+            </span>
+            
+                  <span class="post-tags">
+                    <i class="iconfont icon-tags mr-10" title="Tags"></i>
+                    
+                    <span class="span--tag mr-8">
+                      <a href="/tags/%E7%9B%91%E6%8E%A7%E5%91%8A%E8%AD%A6/" title="监控告警">
+                        #监控告警
+                      </a>
+                    </span>
+                    
+                  </span>
+              
+          </div>
+          <div class="post-foot-prev">
+            
+              <a href="/2024/09/11/k8s/kubernetesScheduler%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" target="_self">
+                <span>Next</span>
+                <i class="iconfont icon-chevronright"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+    </div>
+    
+  <div id="btn-catalog" class="btn-catalog">
+    <i class="iconfont icon-catalog"></i>
+  </div>
+  <div class="post-catalog hidden" id="catalog">
+    <div class="title">Contents</div>
+    <div class="catalog-content">
+      
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%85%8D%E7%BD%AE"><span class="toc-text">配置</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#alertmanager%E9%85%8D%E7%BD%AE"><span class="toc-text">alertmanager配置</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Prometheus%E9%85%8D%E7%BD%AE"><span class="toc-text">Prometheus配置</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%91%8A%E8%AD%A6%E8%A7%84%E5%88%99"><span class="toc-text">告警规则</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%90%AF%E5%8A%A8%E6%9C%8D%E5%8A%A1"><span class="toc-text">启动服务</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%90%AF%E5%8A%A8-Prometheus"><span class="toc-text">启动 Prometheus</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%90%AF%E5%8A%A8-Alertmanager"><span class="toc-text">启动 Alertmanager</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9F%A5%E7%9C%8BPrometheus"><span class="toc-text">查看Prometheus</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%8A%B6%E6%80%81%E5%80%BC"><span class="toc-text">状态值</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%83%AD%E5%8A%A0%E8%BD%BD"><span class="toc-text">热加载</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9F%A5%E7%9C%8BAlertmanager"><span class="toc-text">查看Alertmanager</span></a></li></ol>
+      
+    </div>
+  </div>
+
+  
+<script src="/js/catalog.js"></script>
+
+
+
+
+    
+      <div class="comments-container">
+        
+
+
+
+
+
+
+
+      </div>
+    
+  </div>
+
+
+        
+<div class="footer">
+  <div class="social">
+    <ul>
+      
+        <li>
+          
+              <a title="github" target="_blank" rel="noopener" href="https://github.com/zchengsite/hexo-theme-oranges">
+                <i class="iconfont icon-github"></i>
+              </a>
+              
+        </li>
+        
+    </ul>
+  </div>
+  
+    
+    <div class="footer-more">
+      
+        <a target="_blank" rel="noopener" href="https://github.com/zchengsite/hexo-theme-oranges">Copyright © 2024 Oranges</a>
+        
+    </div>
+  
+    
+    <div class="footer-more">
+      
+        <a target="_blank" rel="noopener" href="https://github.com/zchengsite/hexo-theme-oranges">Theme by Oranges | Powered by Hexo</a>
+        
+    </div>
+  
+  
+</div>
+
+      </div>
+
+      <div class="tools-bar">
+        <div class="back-to-top tools-bar-item hidden">
+  <a href="javascript: void(0)">
+    <i class="iconfont icon-chevronup"></i>
+  </a>
+</div>
+
+
+<script src="/js/backtotop.js"></script>
+
+
+
+        
+  <div class="search-icon tools-bar-item" id="search-icon">
+    <a href="javascript: void(0)">
+      <i class="iconfont icon-search"></i>
+    </a>
+  </div>
+
+  <div class="search-overlay hidden">
+    <div class="search-content" tabindex="0">
+      <div class="search-title">
+        <span class="search-icon-input">
+          <a href="javascript: void(0)">
+            <i class="iconfont icon-search"></i>
+          </a>
+        </span>
+        
+          <input type="text" class="search-input" id="search-input" placeholder="Search...">
+        
+        <span class="search-close-icon" id="search-close-icon">
+          <a href="javascript: void(0)">
+            <i class="iconfont icon-close"></i>
+          </a>
+        </span>
+      </div>
+      <div class="search-result" id="search-result"></div>
+    </div>
+  </div>
+
+  <script type="text/javascript">
+    var inputArea = document.querySelector("#search-input")
+    var searchOverlayArea = document.querySelector(".search-overlay")
+
+    inputArea.onclick = function() {
+      getSearchFile()
+      this.onclick = null
+    }
+
+    inputArea.onkeydown = function() {
+      if(event.keyCode == 13)
+        return false
+    }
+
+    function openOrHideSearchContent() {
+      let isHidden = searchOverlayArea.classList.contains('hidden')
+      if (isHidden) {
+        searchOverlayArea.classList.remove('hidden')
+        document.body.classList.add('hidden')
+        // inputArea.focus()
+      } else {
+        searchOverlayArea.classList.add('hidden')
+        document.body.classList.remove('hidden')
+      }
+    }
+
+    function blurSearchContent(e) {
+      if (e.target === searchOverlayArea) {
+        openOrHideSearchContent()
+      }
+    }
+
+    document.querySelector("#search-icon").addEventListener("click", openOrHideSearchContent, false)
+    document.querySelector("#search-close-icon").addEventListener("click", openOrHideSearchContent, false)
+    searchOverlayArea.addEventListener("click", blurSearchContent, false)
+
+    var searchFunc = function (path, search_id, content_id) {
+      'use strict';
+      var $input = document.getElementById(search_id);
+      var $resultContent = document.getElementById(content_id);
+      $resultContent.innerHTML = "<ul><span class='local-search-empty'>First search, index file loading, please wait...<span></ul>";
+      $.ajax({
+        // 0x01. load xml file
+        url: path,
+        dataType: "xml",
+        success: function (xmlResponse) {
+          // 0x02. parse xml file
+          var datas = $("entry", xmlResponse).map(function () {
+            return {
+              title: $("title", this).text(),
+              content: $("content", this).text(),
+              url: $("url", this).text()
+            };
+          }).get();
+          $resultContent.innerHTML = "";
+
+          $input.addEventListener('input', function () {
+            // 0x03. parse query to keywords list
+            var str = '<ul class=\"search-result-list\">';
+            var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+            $resultContent.innerHTML = "";
+            if (this.value.trim().length <= 0) {
+              return;
+            }
+            // 0x04. perform local searching
+            datas.forEach(function (data) {
+              var isMatch = true;
+              var content_index = [];
+              if (!data.title || data.title.trim() === '') {
+                data.title = "Untitled";
+              }
+              var orig_data_title = data.title.trim();
+              var data_title = orig_data_title.toLowerCase();
+              var orig_data_content = data.content.trim().replace(/<[^>]+>/g, "");
+              var data_content = orig_data_content.toLowerCase();
+              var data_url = data.url;
+              var index_title = -1;
+              var index_content = -1;
+              var first_occur = -1;
+              // only match artiles with not empty contents
+              if (data_content !== '') {
+                keywords.forEach(function (keyword, i) {
+                  index_title = data_title.indexOf(keyword);
+                  index_content = data_content.indexOf(keyword);
+
+                  if (index_title < 0 && index_content < 0) {
+                    isMatch = false;
+                  } else {
+                    if (index_content < 0) {
+                      index_content = 0;
+                    }
+                    if (i == 0) {
+                      first_occur = index_content;
+                    }
+                    // content_index.push({index_content:index_content, keyword_len:keyword_len});
+                  }
+                });
+              } else {
+                isMatch = false;
+              }
+              // 0x05. show search results
+              if (isMatch) {
+                str += "<li><a href='" + data_url + "' class='search-result-title'>" + orig_data_title + "</a>";
+                var content = orig_data_content;
+                if (first_occur >= 0) {
+                  // cut out 100 characters
+                  var start = first_occur - 20;
+                  var end = first_occur + 80;
+
+                  if (start < 0) {
+                    start = 0;
+                  }
+
+                  if (start == 0) {
+                    end = 100;
+                  }
+
+                  if (end > content.length) {
+                    end = content.length;
+                  }
+
+                  var match_content = content.substr(start, end);
+
+                  // highlight all keywords
+                  keywords.forEach(function (keyword) {
+                    var regS = new RegExp(keyword, "gi");
+                    match_content = match_content.replace(regS, "<span class=\"search-keyword\">" + keyword + "</span>");
+                  });
+
+                  str += "<p class=\"search-result-abstract\">" + match_content + "...</p>"
+                }
+                str += "</li>";
+              }
+            });
+            str += "</ul>";
+            if (str.indexOf('<li>') === -1) {
+              return $resultContent.innerHTML = "<ul><span class='local-search-empty'>No result<span></ul>";
+            }
+            $resultContent.innerHTML = str;
+          });
+        },
+        error: function(xhr, status, error) {
+          $resultContent.innerHTML = ""
+          if (xhr.status === 404) {
+            $resultContent.innerHTML = "<ul><span class='local-search-empty'>The search.xml file was not found, please refer to：<a href='https://github.com/zchengsite/hexo-theme-oranges#configuration' target='_black'>configuration</a><span></ul>";
+          } else {
+            $resultContent.innerHTML = "<ul><span class='local-search-empty'>The request failed, Try to refresh the page or try again later.<span></ul>";
+          }
+        }
+      });
+      $(document).on('click', '#search-close-icon', function() {
+        $('#search-input').val('');
+        $('#search-result').html('');
+      });
+    }
+
+    var getSearchFile = function() {
+        var path = "/search.xml";
+        searchFunc(path, 'search-input', 'search-result');
+    }
+  </script>
+
+
+
+
+        
+  <div class="tools-bar-item theme-icon" id="switch-color-scheme">
+    <a href="javascript: void(0)">
+      <i id="theme-icon" class="iconfont icon-moon"></i>
+    </a>
+  </div>
+
+  
+<script src="/js/colorscheme.js"></script>
+
+
+
+
+
+        
+  
+    <div class="share-icon tools-bar-item">
+      <a href="javascript: void(0)" id="share-icon">
+        <i class="iconfont iconshare"></i>
+      </a>
+      <div class="share-content hidden">
+        
+          <a class="share-item" href="https://twitter.com/intent/tweet?text=' + prometheus%E5%91%8A%E8%AD%A6%E5%AE%9E%E6%88%98 + '&url=' + https%3A%2F%2Ffalser101.github.io%2F2024%2F09%2F10%2Fk8s%2Fprometheus%25E5%2591%258A%25E8%25AD%25A6%25E5%25AE%259E%25E6%2588%2598%2F + '" target="_blank" title="Twitter">
+            <i class="iconfont icon-twitter"></i>
+          </a>
+        
+        
+          <a class="share-item" href="https://www.facebook.com/sharer.php?u=https://falser101.github.io/2024/09/10/k8s/prometheus%E5%91%8A%E8%AD%A6%E5%AE%9E%E6%88%98/" target="_blank" title="Facebook">
+            <i class="iconfont icon-facebooksquare"></i>
+          </a>
+        
+      </div>
+    </div>
+  
+  
+<script src="/js/shares.js"></script>
+
+
+
+      </div>
+    </div>
+  </body>
+</html>

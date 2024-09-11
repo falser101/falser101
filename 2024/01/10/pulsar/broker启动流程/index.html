@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en" color-mode="light">
+
+  <head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="author" content="John Doe" />
+  <!-- Open Graph Description 简短摘要-->
+  
+  <!-- 用于搜索引擎的文章摘要 -->
+  
+  
+  
+  <title>
+    
+      pulsar broker组件启动流程 
+      
+      
+      |
+    
+     Hexo
+  </title>
+
+  
+    <link rel="apple-touch-icon" href="/images/favicon.png">
+    <link rel="icon" href="/images/favicon.png">
+  
+
+  <!-- Raleway-Font -->
+  <link href="https://fonts.googleapis.com/css?family=Raleway&display=swap" rel="stylesheet">
+
+  <!-- hexo site css -->
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="//at.alicdn.com/t/font_1886449_67xjft27j1l.css" />
+  <!-- 代码块风格 -->
+  
+
+  <!-- jquery3.3.1 -->
+  
+    <script defer type="text/javascript" src="/plugins/jquery.min.js"></script>
+  
+
+  <!-- fancybox -->
+  
+    <link href="/plugins/jquery.fancybox.min.css" rel="stylesheet">
+    <script defer type="text/javascript" src="/plugins/jquery.fancybox.min.js"></script>
+  
+  
+<script src="/js/fancybox.js"></script>
+
+
+  
+
+  
+
+  <script>
+    var html = document.documentElement
+    const colorMode = localStorage.getItem('color-mode')
+    if (colorMode) {
+      document.documentElement.setAttribute('color-mode', colorMode)
+    }
+  </script>
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+  <body>
+    <div id="app">
+      <div class="header">
+  <div class="avatar">
+    <a href="/">
+      <!-- 头像取消懒加载，添加no-lazy -->
+      
+        <img src="/images/avatar.png" alt="">
+      
+    </a>
+    <div class="nickname"><a href="/">Oranges</a></div>
+  </div>
+  <div class="navbar">
+    <ul>
+      
+        <li class="nav-item" data-path="/">
+          <a href="/">首页</a>
+        </li>
+      
+        <li class="nav-item" data-path="/archives/">
+          <a href="/archives/">归档</a>
+        </li>
+      
+        <li class="nav-item" data-path="/tags/">
+          <a href="/tags/">标签</a>
+        </li>
+      
+        <li class="nav-item" data-path="/about/">
+          <a href="/about/">关于</a>
+        </li>
+      
+    </ul>
+  </div>
+</div>
+
+
+<script src="/js/activeNav.js"></script>
+
+
+
+      <div class="flex-container">
+        <!-- 文章详情页，展示文章具体内容，url形式：https://yoursite/文章标题/ -->
+<!-- 同时为「标签tag」，「朋友friend」，「分类categories」，「关于about」页面的承载页面，具体展示取决于page.type -->
+
+
+  <!-- LaTex Display -->
+
+  
+    <script async type="text/javascript" src="/plugins/mathjax/tex-chtml.js"></script>
+  
+  <script>
+    MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']]
+      }
+    }
+  </script>
+
+
+
+
+
+  <!-- clipboard -->
+
+  
+    <script async type="text/javascript" src="/plugins/clipboard.min.js"></script>
+  
+  
+<script src="/js/codeCopy.js"></script>
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  <!-- 文章内容页 url形式：https://yoursite/文章标题/ -->
+  <div class="container post-details" id="post-details">
+    <div class="post-content">
+      <div class="post-title">pulsar broker组件启动流程</div>
+      <div class="post-attach">
+        <span class="post-pubtime">
+          <i class="iconfont icon-updatetime mr-10" title="Update time"></i>
+          2024-09-11 14:38:01
+        </span>
+        
+              <span class="post-tags">
+                <i class="iconfont icon-tags mr-10" title="Tags"></i>
+                
+                <span class="span--tag mr-8">
+                  <a href="/tags/pulsar/" title="pulsar">
+                    #pulsar
+                  </a>
+                </span>
+                
+              </span>
+          
+      </div>
+      <div class="markdown-body">
+        <h1 id="Broker组件启动流程"><a href="#Broker组件启动流程" class="headerlink" title="Broker组件启动流程"></a>Broker组件启动流程</h1><p>在收发消息前，我们得启动Broker服务，本章将介绍Broker在启动阶段都做了什么。各个模块之前的关系，服务启动不同模块的初始化顺序。</p>
+<h2 id="服务启动"><a href="#服务启动" class="headerlink" title="服务启动"></a>服务启动</h2><p>使用bin目录下名为pulsar的CLI工具，执行命令时传入broker参数，会调用<code>PulsarBrokerStarter</code>这个类来启动Pulsar Broker服务。Broker总体启动流程如下图所示:</p>
+<p><img src="/imgs/pulsar/broker-startup/%E6%80%BB%E4%BD%93%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B.png" alt="pulsar-broker-startup"></p>
+<ol>
+<li><p>加载配置文件。Broker启动时会读取conf&#x2F;broker.conf文件，并将其中的配置信息全部转化为Key&#x2F;Value的形式，通过反射创建一个<code>ServiceConfigration</code>对象。并且把值设置到这个对象的属性中。</p>
+</li>
+<li><p>注册ShutdownHook和OOM监听器。ShutdownHook在服务关闭时执行清理💰，OOMListener在内存溢出时打印异常信息。</p>
+</li>
+<li><p>启动<code>BookieStatsProvider</code>服务,<code>BookieStatsProvider</code>是Bookie服务的统计信息提供者，提供Bookie服务的统计信息。这一步通常只在Standalone模式下执行。</p>
+</li>
+<li><p>启动BookieServer,让Bookie和Broker一起启动，主要用于开发测试</p>
+</li>
+<li><p>启动<code>PulsarService</code>服务，<code>PulsarService</code>是启动Broker的主入口，内部还会启动一个<code>BrokerService</code>，这两个Service的分工不同，<code>PulsarService</code>范围更大，包括负载管理、缓存、Schema、Admin相关的Web服务等，属于管理流。而<code>BrokerService</code>则专注于消息的收发，创建<code>Netty EventLoopGroup</code>、创建内置调度器等，属于数据流。</p>
+</li>
+</ol>
+<blockquote>
+<p>什么是管理流和数据流？</p>
+<p>增删改查Broker的配置，或者一个Topic，通过Pulsar-Admin来操作，这些操作都是管理流。<br>收发消息，这些操作都是数据流。执行操作之前，需要通过PulsarClient来创建Producer和Consumer，然后才能执行收发消息的操作。</p>
+</blockquote>
+<p>主要代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">    <span class="type">BrokerStarter</span> <span class="variable">starter</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">BrokerStarter</span>(args);</span><br><span class="line">    Runtime.getRuntime().addShutdownHook(...);</span><br><span class="line"></span><br><span class="line">    PulsarByteBufAllocator.registerOOMListener(oomException -&gt; &#123;...&#125;);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        starter.start();</span><br><span class="line">    &#125;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"># 加载配置文件</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> ServiceConfiguration <span class="title function_">loadConfig</span><span class="params">(String configFile)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">    <span class="keyword">try</span> (<span class="type">InputStream</span> <span class="variable">inputStream</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">FileInputStream</span>(configFile)) &#123;</span><br><span class="line">        <span class="type">ServiceConfiguration</span> <span class="variable">config</span> <span class="operator">=</span> create(inputStream, ServiceConfiguration.class);</span><br><span class="line">        <span class="comment">// it validates provided configuration is completed</span></span><br><span class="line">        isComplete(config);</span><br><span class="line">        <span class="keyword">return</span> config;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"># 启动服务</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">start</span><span class="params">()</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">    <span class="keyword">if</span> (bookieStatsProvider != <span class="literal">null</span>) &#123;</span><br><span class="line">        bookieStatsProvider.start(bookieConfig);</span><br><span class="line">        log.info(<span class="string">&quot;started bookieStatsProvider.&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (bookieServer != <span class="literal">null</span>) &#123;</span><br><span class="line">        bookieStartFuture = ComponentStarter.startComponent(bookieServer);</span><br><span class="line">        log.info(<span class="string">&quot;started bookieServer.&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (autoRecoveryMain != <span class="literal">null</span>) &#123;</span><br><span class="line">        autoRecoveryMain.start();</span><br><span class="line">        log.info(<span class="string">&quot;started bookie autoRecoveryMain.&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    pulsarService.start();</span><br><span class="line">    log.info(<span class="string">&quot;PulsarService started.&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="PulsarService-java"><a href="#PulsarService-java" class="headerlink" title="PulsarService.java"></a>PulsarService.java</h2><p>主要代码如下（省略了一些不重要的代码）：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">start</span><span class="params">()</span> <span class="keyword">throws</span> PulsarServerException &#123;</span><br><span class="line">    mutex.lock();</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        ......</span><br><span class="line">        localMetadataSynchronizer = StringUtils.isNotBlank(config.getMetadataSyncEventTopic())</span><br><span class="line">                ? <span class="keyword">new</span> <span class="title class_">PulsarMetadataEventSynchronizer</span>(<span class="built_in">this</span>, config.getMetadataSyncEventTopic())</span><br><span class="line">                : <span class="literal">null</span>;</span><br><span class="line">        localMetadataStore = createLocalMetadataStore(localMetadataSynchronizer);</span><br><span class="line">        localMetadataStore.registerSessionListener(<span class="built_in">this</span>::handleMetadataSessionEvent);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 创建coordinationService，用于分布式锁、Broker选主等</span></span><br><span class="line">        coordinationService = <span class="keyword">new</span> <span class="title class_">CoordinationServiceImpl</span>(localMetadataStore);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 创建pulsarResources，用于元数据管理，元数据包括本地元数据和配置文件元数据，保存在zookeeper中</span></span><br><span class="line">        <span class="comment">// 主要实现方式为调用配置中心存储对于资源的元数据</span></span><br><span class="line">        pulsarResources = newPulsarResources();</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 创建orderedExecutor线程池，后续用于ZK的操作，拆分bundle等</span></span><br><span class="line">        orderedExecutor = newOrderedExecutor();</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 创建protocolHandlers，这个服务用于管理pulsar的扩展点，pulsar中可以通过*.nar文件实现自定义扩展点。</span></span><br><span class="line">        <span class="comment">// Pulsar启动时会默认尝试扫描./protocols目录或系统环境变量java.io.tmpdir里设置的路径下的所有nar文件。</span></span><br><span class="line">        <span class="comment">// 如KOP、AOP等都是通过这个扩展点实现的</span></span><br><span class="line">        protocolHandlers = ProtocolHandlers.load(config);</span><br><span class="line">        protocolHandlers.initialize(config);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Now we are ready to start services</span></span><br><span class="line">        <span class="built_in">this</span>.bkClientFactory = newBookKeeperClientFactory();</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 创建ManagedLedgerClientFactory，用于管理ManagedLedger的客户端。</span></span><br><span class="line">        <span class="comment">// Pulsar是计算和存储分离的架构，managedLedger是存储的抽象，ManagedLedgerClient用来请求BookKeeper保存数据</span></span><br><span class="line">        managedLedgerClientFactory = newManagedLedgerClientFactory();</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 创建BrokerService, 数据流相关的服务都在这里启动</span></span><br><span class="line">        <span class="built_in">this</span>.brokerService = newBrokerService(<span class="built_in">this</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 创建loadManager，用于管理broker的负载，不管有没有打开自动负载管理都会创建</span></span><br><span class="line">        <span class="comment">// 默认管理器是org.apache.pulsar.broker.loadbalance.impl.ModularLoadManagerImpl</span></span><br><span class="line">        <span class="built_in">this</span>.loadManager.set(LoadManager.create(<span class="built_in">this</span>));</span><br><span class="line"></span><br><span class="line">        <span class="comment">// needs load management service and before start broker service,</span></span><br><span class="line">        <span class="built_in">this</span>.startNamespaceService();</span><br><span class="line"></span><br><span class="line">        schemaStorage = createAndStartSchemaStorage();</span><br><span class="line">        <span class="comment">// 用于管理Topic的Schema，如Schema.Type.JSON</span></span><br><span class="line">        schemaRegistryService = SchemaRegistryService.create(</span><br><span class="line">                schemaStorage, config.getSchemaRegistryCompatibilityCheckers(), <span class="built_in">this</span>.executor);</span><br><span class="line"></span><br><span class="line">        <span class="type">OffloadPoliciesImpl</span> <span class="variable">defaultOffloadPolicies</span> <span class="operator">=</span></span><br><span class="line">                OffloadPoliciesImpl.create(<span class="built_in">this</span>.getConfiguration().getProperties());</span><br><span class="line"></span><br><span class="line">        <span class="type">OrderedScheduler</span> <span class="variable">offloaderScheduler</span> <span class="operator">=</span> getOffloaderScheduler(defaultOffloadPolicies);</span><br><span class="line"></span><br><span class="line">        offloaderStats = LedgerOffloaderStats.create(config.isExposeManagedLedgerMetricsInPrometheus(),</span><br><span class="line">                exposeTopicMetrics, offloaderScheduler, interval);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 创建OffloaderManager，当有大量的消息堆积，这些消息要求保留很长时间，我们不想让这些冷数据占用线上服务的硬盘空间。</span></span><br><span class="line">        <span class="comment">// 这些冷数据可以使用OffloaderManager移动到其他磁盘上，以节省空间。</span></span><br><span class="line">        <span class="built_in">this</span>.defaultOffloader = createManagedLedgerOffloader(defaultOffloadPolicies);</span><br><span class="line"></span><br><span class="line">        setBrokerInterceptor(newBrokerInterceptor());</span><br><span class="line">        <span class="comment">// use getter to support mocking getBrokerInterceptor method in tests</span></span><br><span class="line">        <span class="type">BrokerInterceptor</span> <span class="variable">interceptor</span> <span class="operator">=</span> getBrokerInterceptor();</span><br><span class="line">        <span class="keyword">if</span> (interceptor != <span class="literal">null</span>) &#123;</span><br><span class="line">            brokerService.setInterceptor(interceptor);</span><br><span class="line">            interceptor.initialize(<span class="built_in">this</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// 启动brokerService</span></span><br><span class="line">        brokerService.start();</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Load additional servlets</span></span><br><span class="line">        <span class="built_in">this</span>.brokerAdditionalServlets = AdditionalServlets.load(config);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 创建管理流WebService，并启动</span></span><br><span class="line">        <span class="built_in">this</span>.webService = <span class="keyword">new</span> <span class="title class_">WebService</span>(<span class="built_in">this</span>);</span><br><span class="line">        createMetricsServlet();</span><br><span class="line">        <span class="built_in">this</span>.addWebServerHandlers(webService, metricsServlet, <span class="built_in">this</span>.config);</span><br><span class="line">        <span class="built_in">this</span>.webService.start();</span><br><span class="line"></span><br><span class="line">        ......</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 启动Leader选举服务</span></span><br><span class="line">        startLeaderElectionService();</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 启动LoadManagementService</span></span><br><span class="line">        <span class="built_in">this</span>.startLoadManagementService();</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Initialize namespace service, after service url assigned. Should init zk and refresh self owner info.</span></span><br><span class="line">        <span class="built_in">this</span>.nsService.initialize();</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 主题策略服务，让用户可以设置主题级别的策略</span></span><br><span class="line">        <span class="keyword">if</span> (config.isTopicLevelPoliciesEnabled() &amp;&amp; config.isSystemTopicEnabled()) &#123;</span><br><span class="line">            <span class="built_in">this</span>.topicPoliciesService = <span class="keyword">new</span> <span class="title class_">SystemTopicBasedTopicPoliciesService</span>(<span class="built_in">this</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="built_in">this</span>.topicPoliciesService.start();</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Register heartbeat and bootstrap namespaces.</span></span><br><span class="line">        <span class="built_in">this</span>.nsService.registerBootstrapNamespaces();</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 事务相关服务</span></span><br><span class="line">        <span class="keyword">if</span> (config.isTransactionCoordinatorEnabled()) &#123;</span><br><span class="line">            MLTransactionMetadataStoreProvider.initBufferedWriterMetrics(getAdvertisedAddress());</span><br><span class="line">            MLPendingAckStoreProvider.initBufferedWriterMetrics(getAdvertisedAddress());</span><br><span class="line"></span><br><span class="line">            <span class="built_in">this</span>.transactionBufferSnapshotServiceFactory = <span class="keyword">new</span> <span class="title class_">TransactionBufferSnapshotServiceFactory</span>(getClient());</span><br><span class="line"></span><br><span class="line">            <span class="built_in">this</span>.transactionTimer =</span><br><span class="line">                    <span class="keyword">new</span> <span class="title class_">HashedWheelTimer</span>(<span class="keyword">new</span> <span class="title class_">DefaultThreadFactory</span>(<span class="string">&quot;pulsar-transaction-timer&quot;</span>));</span><br><span class="line">            transactionBufferClient = TransactionBufferClientImpl.create(<span class="built_in">this</span>, transactionTimer,</span><br><span class="line">                    config.getTransactionBufferClientMaxConcurrentRequests(),</span><br><span class="line">                    config.getTransactionBufferClientOperationTimeoutInMills());</span><br><span class="line"></span><br><span class="line">            transactionMetadataStoreService = <span class="keyword">new</span> <span class="title class_">TransactionMetadataStoreService</span>(TransactionMetadataStoreProvider</span><br><span class="line">                    .newProvider(config.getTransactionMetadataStoreProviderClassName()), <span class="built_in">this</span>,</span><br><span class="line">                    transactionBufferClient, transactionTimer);</span><br><span class="line"></span><br><span class="line">            transactionBufferProvider = TransactionBufferProvider</span><br><span class="line">                    .newProvider(config.getTransactionBufferProviderClassName());</span><br><span class="line">            transactionPendingAckStoreProvider = TransactionPendingAckStoreProvider</span><br><span class="line">                    .newProvider(config.getTransactionPendingAckStoreProviderClassName());</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 初始化metricsGenerator，用于将生成Broker级别的metrics暴露给Prometheus</span></span><br><span class="line">        <span class="built_in">this</span>.metricsGenerator = <span class="keyword">new</span> <span class="title class_">MetricsGenerator</span>(<span class="built_in">this</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Initialize the message protocol handlers.</span></span><br><span class="line">        <span class="comment">// start the protocol handlers only after the broker is ready,</span></span><br><span class="line">        <span class="comment">// so that the protocol handlers can access broker service properly.</span></span><br><span class="line">        <span class="built_in">this</span>.protocolHandlers.start(brokerService);</span><br><span class="line">        Map&lt;String, Map&lt;InetSocketAddress, ChannelInitializer&lt;SocketChannel&gt;&gt;&gt; protocolHandlerChannelInitializers =</span><br><span class="line">            <span class="built_in">this</span>.protocolHandlers.newChannelInitializers();</span><br><span class="line">        <span class="built_in">this</span>.brokerService.startProtocolHandlers(protocolHandlerChannelInitializers);</span><br><span class="line"></span><br><span class="line">        acquireSLANamespace();</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 创建并启动function worker服务</span></span><br><span class="line">        <span class="built_in">this</span>.startWorkerService(brokerService.getAuthenticationService(), brokerService.getAuthorizationService());</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 创建并启动packages management服务,用于管理Function的用户上传的代码包</span></span><br><span class="line">        <span class="keyword">if</span> (config.isEnablePackagesManagement()) &#123;</span><br><span class="line">            <span class="built_in">this</span>.startPackagesManagementService();</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        ......</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="BrokerService-java"><a href="#BrokerService-java" class="headerlink" title="BrokerService.java"></a>BrokerService.java</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="title function_">BrokerService</span><span class="params">(PulsarService pulsar, EventLoopGroup eventLoopGroup)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">    ......</span><br><span class="line">    <span class="comment">// 创建topicOrderedExecutor，这是一个线程池，由bookkeeper封装，保证同一个Topic名，</span></span><br><span class="line">    <span class="comment">// 永远使用同一个线程来执行，从而保证同一个topic的操作是有序的</span></span><br><span class="line">    <span class="built_in">this</span>.topicOrderedExecutor = OrderedExecutor.newBuilder()</span><br><span class="line">                .numThreads(pulsar.getConfiguration().getTopicOrderedExecutorThreadNum())</span><br><span class="line">                .name(<span class="string">&quot;broker-topic-workers&quot;</span>).build();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 使用Netty创建acceptorGroup处理I/O事件</span></span><br><span class="line">    <span class="built_in">this</span>.acceptorGroup = EventLoopUtil.newEventLoopGroup(</span><br><span class="line">                pulsar.getConfiguration().getNumAcceptorThreads(), <span class="literal">false</span>, acceptorThreadFactory);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 使用Netty创建workerGroup处理业务逻辑</span></span><br><span class="line">    <span class="built_in">this</span>.workerGroup = eventLoopGroup;</span><br><span class="line">    ......</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Pulsar权限校验，支持Produce，Consume、Function三种权限</span></span><br><span class="line">    <span class="built_in">this</span>.authorizationService = <span class="keyword">new</span> <span class="title class_">AuthorizationService</span>(</span><br><span class="line">                pulsar.getConfiguration(), pulsar().getPulsarResources());</span><br><span class="line">    <span class="comment">// 创建各种监视器</span></span><br><span class="line">    <span class="comment">// 定期检查长期未使用的主题并删除</span></span><br><span class="line">    <span class="built_in">this</span>.inactivityMonitor = OrderedScheduler.newSchedulerBuilder()</span><br><span class="line">                .name(<span class="string">&quot;pulsar-inactivity-monitor&quot;</span>)</span><br><span class="line">                .numThreads(<span class="number">1</span>)</span><br><span class="line">                .build();</span><br><span class="line">    <span class="comment">// 定期检查过期消息并删除</span></span><br><span class="line">    <span class="built_in">this</span>.messageExpiryMonitor = ...</span><br><span class="line">    <span class="comment">// 定期压缩主题</span></span><br><span class="line">    <span class="built_in">this</span>.compactionMonitor = ...</span><br><span class="line">    <span class="built_in">this</span>.consumedLedgersMonitor = ...</span><br><span class="line"></span><br><span class="line">    <span class="built_in">this</span>.backlogQuotaManager = <span class="keyword">new</span> <span class="title class_">BacklogQuotaManager</span>(pulsar);</span><br><span class="line">    <span class="comment">// backlog检查器</span></span><br><span class="line">    <span class="built_in">this</span>.backlogQuotaChecker = ...</span><br><span class="line">    <span class="comment">// 认证服务</span></span><br><span class="line">    <span class="built_in">this</span>.authenticationService = <span class="keyword">new</span> <span class="title class_">AuthenticationService</span>(pulsar.getConfiguration());</span><br><span class="line">    ......</span><br><span class="line">    <span class="comment">// 创建动态配置的监听器</span></span><br><span class="line">    updateConfigurationAndRegisterListeners();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 一些信号量</span></span><br><span class="line">    <span class="built_in">this</span>.lookupRequestSemaphore = <span class="keyword">new</span> <span class="title class_">AtomicReference</span>&lt;Semaphore&gt;(</span><br><span class="line">            <span class="keyword">new</span> <span class="title class_">Semaphore</span>(pulsar.getConfiguration().getMaxConcurrentLookupRequest(), <span class="literal">false</span>));</span><br><span class="line">    <span class="built_in">this</span>.topicLoadRequestSemaphore = <span class="keyword">new</span> <span class="title class_">AtomicReference</span>&lt;Semaphore&gt;(</span><br><span class="line">            <span class="keyword">new</span> <span class="title class_">Semaphore</span>(pulsar.getConfiguration().getMaxConcurrentTopicLoadRequest(), <span class="literal">false</span>));</span><br><span class="line">    <span class="keyword">if</span> (pulsar.getConfiguration().getMaxUnackedMessagesPerBroker() &gt; <span class="number">0</span></span><br><span class="line">            &amp;&amp; pulsar.getConfiguration().getMaxUnackedMessagesPerSubscriptionOnBrokerBlocked() &gt; <span class="number">0.0</span>) &#123;</span><br><span class="line">        <span class="comment">// 最大未确认消息数</span></span><br><span class="line">        <span class="built_in">this</span>.maxUnackedMessages = pulsar.getConfiguration().getMaxUnackedMessagesPerBroker();</span><br><span class="line">        <span class="built_in">this</span>.maxUnackedMsgsPerDispatcher = (<span class="type">int</span>) (maxUnackedMessages</span><br><span class="line">                * pulsar.getConfiguration().getMaxUnackedMessagesPerSubscriptionOnBrokerBlocked());</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="built_in">this</span>.maxUnackedMessages = <span class="number">0</span>;</span><br><span class="line">        <span class="built_in">this</span>.maxUnackedMsgsPerDispatcher = <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// Pulsar的延迟消息的实现类会通过这个工厂创建出来</span></span><br><span class="line">    <span class="built_in">this</span>.delayedDeliveryTrackerFactory = DelayedDeliveryTrackerLoader</span><br><span class="line">        .loadDelayedDeliveryTrackerFactory(pulsar);</span><br><span class="line">    <span class="comment">// Entry元数据的拦截器，用于用户自定义扩展</span></span><br><span class="line">    <span class="built_in">this</span>.brokerEntryMetadataInterceptors = BrokerEntryMetadataUtils</span><br><span class="line">        .loadBrokerEntryMetadataInterceptors(pulsar.getConfiguration().getBrokerEntryMetadataInterceptors(),</span><br><span class="line">                BrokerService.class.getClassLoader());</span><br></pre></td></tr></table></figure>
+
+<h3 id="动态配置"><a href="#动态配置" class="headerlink" title="动态配置"></a>动态配置</h3><p>在启动Broker Service前会遍历ServiceConfiguration类中的所有成员变量（包括私有成员变量）</p>
+<p>如果变量不是null，并且它具有FieldContext注解，那么设置其可访问性（以便在后续步骤中访问其值）</p>
+<p>如果变量具有dynamic()属性，使用new ConfigField(field)创建一个新的ConfigField对象，并且将该对象添加到dynamicConfigurationMap</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> ConcurrentOpenHashMap&lt;String, ConfigField&gt; <span class="title function_">prepareDynamicConfigurationMap</span><span class="params">()</span> &#123;</span><br><span class="line">    ConcurrentOpenHashMap&lt;String, ConfigField&gt; dynamicConfigurationMap =</span><br><span class="line">            ConcurrentOpenHashMap.&lt;String, ConfigField&gt;newBuilder().build();</span><br><span class="line">    <span class="keyword">for</span> (Field field : ServiceConfiguration.class.getDeclaredFields()) &#123;</span><br><span class="line">        <span class="keyword">if</span> (field != <span class="literal">null</span> &amp;&amp; field.isAnnotationPresent(FieldContext.class)) &#123;</span><br><span class="line">            field.setAccessible(<span class="literal">true</span>);</span><br><span class="line">            <span class="keyword">if</span> (field.getAnnotation(FieldContext.class).dynamic()) &#123;</span><br><span class="line">                dynamicConfigurationMap.put(field.getName(), <span class="keyword">new</span> <span class="title class_">ConfigField</span>(field));</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> dynamicConfigurationMap;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>然后通过下面的方法进行注册</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> &lt;T&gt; <span class="keyword">void</span> <span class="title function_">registerConfigurationListener</span><span class="params">(String configKey, Consumer&lt;T&gt; listener)</span> &#123;</span><br><span class="line">    validateConfigKey(configKey);</span><br><span class="line">    configRegisteredListeners.put(configKey, listener);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>示例：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">registerConfigurationListener(<span class="string">&quot;maxPublishRatePerTopicInMessages&quot;</span>,</span><br><span class="line">    maxPublishRatePerTopicInMessages -&gt; updateMaxPublishRatePerTopicInMessages()</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">updateMaxPublishRatePerTopicInMessages</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="built_in">this</span>.pulsar().getExecutor().execute(() -&gt;</span><br><span class="line">        forEachTopic(topic -&gt; &#123;</span><br><span class="line">            <span class="keyword">if</span> (topic <span class="keyword">instanceof</span> AbstractTopic) &#123;</span><br><span class="line">                ((AbstractTopic) topic).updateBrokerPublishRate();</span><br><span class="line">                ((AbstractTopic) topic).updatePublishRateLimiter();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+      </div>
+      
+        <div class="prev-or-next">
+          <div class="post-foot-next">
+            
+              <a href="/2023/11/21/k8s/admissionWebhook/" target="_self">
+                <i class="iconfont icon-chevronleft"></i>
+                <span>Prev</span>
+              </a>
+            
+          </div>
+          <div class="post-attach">
+            <span class="post-pubtime">
+              <i class="iconfont icon-updatetime mr-10" title="Update time"></i>
+              2024-09-11 14:38:01
+            </span>
+            
+                  <span class="post-tags">
+                    <i class="iconfont icon-tags mr-10" title="Tags"></i>
+                    
+                    <span class="span--tag mr-8">
+                      <a href="/tags/pulsar/" title="pulsar">
+                        #pulsar
+                      </a>
+                    </span>
+                    
+                  </span>
+              
+          </div>
+          <div class="post-foot-prev">
+            
+              <a href="/2024/01/16/pulsar/Broker%E8%87%AA%E5%AE%9A%E4%B9%89%E6%8B%A6%E6%88%AA%E5%99%A8/" target="_self">
+                <span>Next</span>
+                <i class="iconfont icon-chevronright"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+    </div>
+    
+  <div id="btn-catalog" class="btn-catalog">
+    <i class="iconfont icon-catalog"></i>
+  </div>
+  <div class="post-catalog hidden" id="catalog">
+    <div class="title">Contents</div>
+    <div class="catalog-content">
+      
+        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Broker%E7%BB%84%E4%BB%B6%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B"><span class="toc-text">Broker组件启动流程</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9C%8D%E5%8A%A1%E5%90%AF%E5%8A%A8"><span class="toc-text">服务启动</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#PulsarService-java"><span class="toc-text">PulsarService.java</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#BrokerService-java"><span class="toc-text">BrokerService.java</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8A%A8%E6%80%81%E9%85%8D%E7%BD%AE"><span class="toc-text">动态配置</span></a></li></ol></li></ol></li></ol>
+      
+    </div>
+  </div>
+
+  
+<script src="/js/catalog.js"></script>
+
+
+
+
+    
+      <div class="comments-container">
+        
+
+
+
+
+
+
+
+      </div>
+    
+  </div>
+
+
+        
+<div class="footer">
+  <div class="social">
+    <ul>
+      
+        <li>
+          
+              <a title="github" target="_blank" rel="noopener" href="https://github.com/zchengsite/hexo-theme-oranges">
+                <i class="iconfont icon-github"></i>
+              </a>
+              
+        </li>
+        
+    </ul>
+  </div>
+  
+    
+    <div class="footer-more">
+      
+        <a target="_blank" rel="noopener" href="https://github.com/zchengsite/hexo-theme-oranges">Copyright © 2024 Oranges</a>
+        
+    </div>
+  
+    
+    <div class="footer-more">
+      
+        <a target="_blank" rel="noopener" href="https://github.com/zchengsite/hexo-theme-oranges">Theme by Oranges | Powered by Hexo</a>
+        
+    </div>
+  
+  
+</div>
+
+      </div>
+
+      <div class="tools-bar">
+        <div class="back-to-top tools-bar-item hidden">
+  <a href="javascript: void(0)">
+    <i class="iconfont icon-chevronup"></i>
+  </a>
+</div>
+
+
+<script src="/js/backtotop.js"></script>
+
+
+
+        
+  <div class="search-icon tools-bar-item" id="search-icon">
+    <a href="javascript: void(0)">
+      <i class="iconfont icon-search"></i>
+    </a>
+  </div>
+
+  <div class="search-overlay hidden">
+    <div class="search-content" tabindex="0">
+      <div class="search-title">
+        <span class="search-icon-input">
+          <a href="javascript: void(0)">
+            <i class="iconfont icon-search"></i>
+          </a>
+        </span>
+        
+          <input type="text" class="search-input" id="search-input" placeholder="Search...">
+        
+        <span class="search-close-icon" id="search-close-icon">
+          <a href="javascript: void(0)">
+            <i class="iconfont icon-close"></i>
+          </a>
+        </span>
+      </div>
+      <div class="search-result" id="search-result"></div>
+    </div>
+  </div>
+
+  <script type="text/javascript">
+    var inputArea = document.querySelector("#search-input")
+    var searchOverlayArea = document.querySelector(".search-overlay")
+
+    inputArea.onclick = function() {
+      getSearchFile()
+      this.onclick = null
+    }
+
+    inputArea.onkeydown = function() {
+      if(event.keyCode == 13)
+        return false
+    }
+
+    function openOrHideSearchContent() {
+      let isHidden = searchOverlayArea.classList.contains('hidden')
+      if (isHidden) {
+        searchOverlayArea.classList.remove('hidden')
+        document.body.classList.add('hidden')
+        // inputArea.focus()
+      } else {
+        searchOverlayArea.classList.add('hidden')
+        document.body.classList.remove('hidden')
+      }
+    }
+
+    function blurSearchContent(e) {
+      if (e.target === searchOverlayArea) {
+        openOrHideSearchContent()
+      }
+    }
+
+    document.querySelector("#search-icon").addEventListener("click", openOrHideSearchContent, false)
+    document.querySelector("#search-close-icon").addEventListener("click", openOrHideSearchContent, false)
+    searchOverlayArea.addEventListener("click", blurSearchContent, false)
+
+    var searchFunc = function (path, search_id, content_id) {
+      'use strict';
+      var $input = document.getElementById(search_id);
+      var $resultContent = document.getElementById(content_id);
+      $resultContent.innerHTML = "<ul><span class='local-search-empty'>First search, index file loading, please wait...<span></ul>";
+      $.ajax({
+        // 0x01. load xml file
+        url: path,
+        dataType: "xml",
+        success: function (xmlResponse) {
+          // 0x02. parse xml file
+          var datas = $("entry", xmlResponse).map(function () {
+            return {
+              title: $("title", this).text(),
+              content: $("content", this).text(),
+              url: $("url", this).text()
+            };
+          }).get();
+          $resultContent.innerHTML = "";
+
+          $input.addEventListener('input', function () {
+            // 0x03. parse query to keywords list
+            var str = '<ul class=\"search-result-list\">';
+            var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+            $resultContent.innerHTML = "";
+            if (this.value.trim().length <= 0) {
+              return;
+            }
+            // 0x04. perform local searching
+            datas.forEach(function (data) {
+              var isMatch = true;
+              var content_index = [];
+              if (!data.title || data.title.trim() === '') {
+                data.title = "Untitled";
+              }
+              var orig_data_title = data.title.trim();
+              var data_title = orig_data_title.toLowerCase();
+              var orig_data_content = data.content.trim().replace(/<[^>]+>/g, "");
+              var data_content = orig_data_content.toLowerCase();
+              var data_url = data.url;
+              var index_title = -1;
+              var index_content = -1;
+              var first_occur = -1;
+              // only match artiles with not empty contents
+              if (data_content !== '') {
+                keywords.forEach(function (keyword, i) {
+                  index_title = data_title.indexOf(keyword);
+                  index_content = data_content.indexOf(keyword);
+
+                  if (index_title < 0 && index_content < 0) {
+                    isMatch = false;
+                  } else {
+                    if (index_content < 0) {
+                      index_content = 0;
+                    }
+                    if (i == 0) {
+                      first_occur = index_content;
+                    }
+                    // content_index.push({index_content:index_content, keyword_len:keyword_len});
+                  }
+                });
+              } else {
+                isMatch = false;
+              }
+              // 0x05. show search results
+              if (isMatch) {
+                str += "<li><a href='" + data_url + "' class='search-result-title'>" + orig_data_title + "</a>";
+                var content = orig_data_content;
+                if (first_occur >= 0) {
+                  // cut out 100 characters
+                  var start = first_occur - 20;
+                  var end = first_occur + 80;
+
+                  if (start < 0) {
+                    start = 0;
+                  }
+
+                  if (start == 0) {
+                    end = 100;
+                  }
+
+                  if (end > content.length) {
+                    end = content.length;
+                  }
+
+                  var match_content = content.substr(start, end);
+
+                  // highlight all keywords
+                  keywords.forEach(function (keyword) {
+                    var regS = new RegExp(keyword, "gi");
+                    match_content = match_content.replace(regS, "<span class=\"search-keyword\">" + keyword + "</span>");
+                  });
+
+                  str += "<p class=\"search-result-abstract\">" + match_content + "...</p>"
+                }
+                str += "</li>";
+              }
+            });
+            str += "</ul>";
+            if (str.indexOf('<li>') === -1) {
+              return $resultContent.innerHTML = "<ul><span class='local-search-empty'>No result<span></ul>";
+            }
+            $resultContent.innerHTML = str;
+          });
+        },
+        error: function(xhr, status, error) {
+          $resultContent.innerHTML = ""
+          if (xhr.status === 404) {
+            $resultContent.innerHTML = "<ul><span class='local-search-empty'>The search.xml file was not found, please refer to：<a href='https://github.com/zchengsite/hexo-theme-oranges#configuration' target='_black'>configuration</a><span></ul>";
+          } else {
+            $resultContent.innerHTML = "<ul><span class='local-search-empty'>The request failed, Try to refresh the page or try again later.<span></ul>";
+          }
+        }
+      });
+      $(document).on('click', '#search-close-icon', function() {
+        $('#search-input').val('');
+        $('#search-result').html('');
+      });
+    }
+
+    var getSearchFile = function() {
+        var path = "/search.xml";
+        searchFunc(path, 'search-input', 'search-result');
+    }
+  </script>
+
+
+
+
+        
+  <div class="tools-bar-item theme-icon" id="switch-color-scheme">
+    <a href="javascript: void(0)">
+      <i id="theme-icon" class="iconfont icon-moon"></i>
+    </a>
+  </div>
+
+  
+<script src="/js/colorscheme.js"></script>
+
+
+
+
+
+        
+  
+    <div class="share-icon tools-bar-item">
+      <a href="javascript: void(0)" id="share-icon">
+        <i class="iconfont iconshare"></i>
+      </a>
+      <div class="share-content hidden">
+        
+          <a class="share-item" href="https://twitter.com/intent/tweet?text=' + pulsar%20broker%E7%BB%84%E4%BB%B6%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B + '&url=' + https%3A%2F%2Ffalser101.github.io%2F2024%2F01%2F10%2Fpulsar%2Fbroker%25E5%2590%25AF%25E5%258A%25A8%25E6%25B5%2581%25E7%25A8%258B%2F + '" target="_blank" title="Twitter">
+            <i class="iconfont icon-twitter"></i>
+          </a>
+        
+        
+          <a class="share-item" href="https://www.facebook.com/sharer.php?u=https://falser101.github.io/2024/01/10/pulsar/broker%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B/" target="_blank" title="Facebook">
+            <i class="iconfont icon-facebooksquare"></i>
+          </a>
+        
+      </div>
+    </div>
+  
+  
+<script src="/js/shares.js"></script>
+
+
+
+      </div>
+    </div>
+  </body>
+</html>
