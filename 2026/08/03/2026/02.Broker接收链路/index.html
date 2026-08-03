@@ -1,0 +1,987 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="falser101">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="第一课的字节流到达 broker 后，ServerCnx 如何还原 SEND 命令，BrokerService（管家）如何管理 topic，消息最终在 PersistentTopic 里通过检查与去重，进入存储层。  学习目标 认识 BrokerService：broker 端所有 topic 的”登记处”和”加载器” 掌握 producer 注册（handleProducer）与消息发布（ha">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Pulsar Broker 接收链路">
+<meta property="og:url" content="https://falser101.github.io/2026/08/03/2026/02.Broker%E6%8E%A5%E6%94%B6%E9%93%BE%E8%B7%AF/index.html">
+<meta property="og:site_name" content="Falser&#39;s Blog">
+<meta property="og:description" content="第一课的字节流到达 broker 后，ServerCnx 如何还原 SEND 命令，BrokerService（管家）如何管理 topic，消息最终在 PersistentTopic 里通过检查与去重，进入存储层。  学习目标 认识 BrokerService：broker 端所有 topic 的”登记处”和”加载器” 掌握 producer 注册（handleProducer）与消息发布（ha">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-08-02T16:00:00.000Z">
+<meta property="article:modified_time" content="2026-08-03T06:29:43.107Z">
+<meta property="article:author" content="Falser">
+<meta property="article:tag" content="pulsar">
+<meta property="article:tag" content="broker">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>Pulsar Broker 接收链路 - Falser&#39;s Blog</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"falser101.github.io","root":"/","version":"1.9.9","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"expand_all":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"openkounter":{"server_url":"https://open-kounter.mintimate.cn","path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Falser&#39;s Blog</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content (desktop) -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- Mobile grid menu overlay -->
+<div id="mobile-grid-menu" class="d-lg-none">
+  <div class="mobile-grid-menu-inner">
+    <div class="container">
+      <div class="row">
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-home-fill"></i>
+                  <span>首页</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/archives/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-archive-fill"></i>
+                  <span>归档</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/categories/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-category-fill"></i>
+                  <span>分类</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/tags/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-tags-fill"></i>
+                  <span>标签</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/about/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-user-fill"></i>
+                  <span>关于</span>
+                </div>
+              </a>
+            </div>
+          
+        
+        
+          <div class="col-4 mobile-grid-cell" id="mobile-search-btn">
+            <a href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <div class="mobile-grid-item">
+                <i class="iconfont icon-search"></i>
+                <span>搜索</span>
+              </div>
+            </a>
+          </div>
+        
+        
+          <div class="col-4 mobile-grid-cell" id="mobile-color-toggle-btn"
+               data-label-light="开灯"
+               data-label-dark="关灯">
+            <a href="javascript:;" aria-label="Color Toggle">
+              <div class="mobile-grid-item">
+                <i class="iconfont icon-dark" id="mobile-color-toggle-icon"></i>
+                <span id="mobile-color-toggle-label">关灯</span>
+              </div>
+            </a>
+          </div>
+        
+      </div>
+    </div>
+  </div>
+</div>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="Pulsar Broker 接收链路"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-08-03 00:00" pubdate>
+          2026年8月3日 凌晨
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          3.8k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          32 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">Pulsar Broker 接收链路</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>第一课的字节流到达 broker 后，<code>ServerCnx</code> 如何还原 SEND 命令，<code>BrokerService</code>（管家）如何管理 topic，<br>消息最终在 <code>PersistentTopic</code> 里通过检查与去重，进入存储层。</p>
+</blockquote>
+<h2 id="学习目标"><a href="#学习目标" class="headerlink" title="学习目标"></a>学习目标</h2><ul>
+<li>认识 <code>BrokerService</code>：broker 端所有 topic 的”登记处”和”加载器”</li>
+<li>掌握 producer 注册（<code>handleProducer</code>）与消息发布（<code>handleSend</code>）两条路径</li>
+<li>看到 broker 端去重的<strong>现场</strong>：sequenceId 去重在这里兑现</li>
+<li>理解 broker 端的有序性与背压机制，和客户端一一对应</li>
+</ul>
+<h2 id="相关代码"><a href="#相关代码" class="headerlink" title="相关代码"></a>相关代码</h2><table>
+<thead>
+<tr>
+<th>文件</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>pulsar-broker/.../service/ServerCnx.java</code></td>
+<td>连接级处理器，持有本连接的 producers&#x2F;consumers 表</td>
+</tr>
+<tr>
+<td><code>pulsar-broker/.../service/BrokerService.java</code></td>
+<td>管家：topic 加载&#x2F;创建&#x2F;缓存</td>
+</tr>
+<tr>
+<td><code>pulsar-broker/.../service/persistent/PersistentTopic.java</code></td>
+<td>topic 对象，发布入口</td>
+</tr>
+</tbody></table>
+<h2 id="1-BrokerService：管家"><a href="#1-BrokerService：管家" class="headerlink" title="1. BrokerService：管家"></a>1. BrokerService：管家</h2><p>它是 broker 上所有 topic 的”登记处”。关键字段即职责：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>职责</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>topics</code>（name → Future&lt;Topic&gt;）</td>
+<td><strong>加载中</strong>的登记表，并发去重用</td>
+</tr>
+<tr>
+<td><code>multiLayerTopicsMap</code>（namespace → bundle → topic）</td>
+<td><strong>已加载</strong> topic 的三层索引，bundle 是负载均衡迁移的最小单位</td>
+</tr>
+<tr>
+<td><code>owningTopics</code></td>
+<td>本 broker 拥有的 topic</td>
+</tr>
+<tr>
+<td><code>topicOrderedExecutor</code></td>
+<td><strong>每 topic 一个串行执行器</strong>——broker 端有序性的来源</td>
+</tr>
+<tr>
+<td><code>managedLedgerStorage</code></td>
+<td>通往存储层的桥</td>
+</tr>
+<tr>
+<td><code>acceptorGroup</code> &#x2F; <code>workerGroup</code></td>
+<td>Netty 网络线程组</td>
+</tr>
+</tbody></table>
+<h3 id="getTopic：教科书级并发安全懒加载"><a href="#getTopic：教科书级并发安全懒加载" class="headerlink" title="getTopic：教科书级并发安全懒加载"></a>getTopic：教科书级并发安全懒加载</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> CompletableFuture&lt;Optional&lt;Topic&gt;&gt; <span class="hljs-title function_">getTopic</span><span class="hljs-params">(TopicName topicName, <span class="hljs-type">boolean</span> createIfMissing, ...)</span> &#123;<br>    <span class="hljs-comment">// 1. topics map 里已有(无论成败)→ 直接返回   ← 并发去重,避免重复加载</span><br>    CompletableFuture&lt;Optional&lt;Topic&gt;&gt; tp = topics.get(topicName.toString());<br>    <span class="hljs-keyword">if</span> (tp != <span class="hljs-literal">null</span>) <span class="hljs-keyword">return</span> tp;<br>    ...<br>    <span class="hljs-comment">// 4. 否则 computeIfAbsent:并发下只有一个线程真正加载,失败则从 map 移除</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>规则（代码注释里原话）：缓存命中直接返回 → 元数据存在则强制创建 → 不存在且不创建则返回空 →<br>否则 <code>computeIfAbsent</code>，失败从 map 移除（下次重试）。</p>
+<h2 id="2-Producer-注册路径（ServerCnx-handleProducer）"><a href="#2-Producer-注册路径（ServerCnx-handleProducer）" class="headerlink" title="2. Producer 注册路径（ServerCnx.handleProducer）"></a>2. Producer 注册路径（<code>ServerCnx.handleProducer</code>）</h2><p>客户端发来 <code>newProducer</code> 命令时：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs text">handleProducer(cmdProducer)<br>  ├─ 鉴权(isTopicOperationAllowed)<br>  ├─ producers.putIfAbsent(producerId, future)     ← 连接级登记<br>  └─ service.getOrCreateTopic(topicName)           ← 管家登场<br>       └─ topic.addProducer(...)                   ← 创建 broker 端 Producer 对象<br>            └─ 回 ProducerSuccess(带 lastSequenceId,客户端用它续发)<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>broker 端返回的 <code>lastSequenceId</code> 就是第一课里客户端重连初始化编号器的依据——两头对上了。</p>
+</blockquote>
+<h2 id="3-消息发布路径（ServerCnx-handleSend）"><a href="#3-消息发布路径（ServerCnx-handleSend）" class="headerlink" title="3. 消息发布路径（ServerCnx.handleSend）"></a>3. 消息发布路径（<code>ServerCnx.handleSend</code>）</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">protected</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">handleSend</span><span class="hljs-params">(CommandSend send, ByteBuf headersAndPayload)</span> &#123;<br>    CompletableFuture&lt;Producer&gt; producerFuture = producers.get(send.getProducerId());<br>    ...<br>    <span class="hljs-comment">// 非持久 topic 的并发限流</span><br>    <span class="hljs-comment">// increasePendingSendRequestsAndPublishBytes(...)   ← broker 端背压</span><br>    <span class="hljs-comment">// 事务消息走 producer.publishTxnMessage(...)</span><br>    producer.publishMessage(send.getProducerId(), send.getSequenceId(), headersAndPayload, ...);<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>注意：这里的 <code>Producer</code> 是 <strong>broker 端的 Producer 对象</strong>（代表一个客户端连接上的生产者），和客户端的 <code>ProducerImpl</code> 一一对应。协议是对称的，代码也是对称的——两边都按 id 管理 producer&#x2F;consumer，这也是 <code>Commands</code> 放在 common 模块的原因。</p>
+<h2 id="4-去重现场（PersistentTopic-publishMessage）"><a href="#4-去重现场（PersistentTopic-publishMessage）" class="headerlink" title="4. 去重现场（PersistentTopic.publishMessage）"></a>4. 去重现场（<code>PersistentTopic.publishMessage</code>）</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">publishMessage</span><span class="hljs-params">(ByteBuf headersAndPayload, PublishContext publishContext)</span> &#123;<br>    pendingWriteOps.incrementAndGet();                       <span class="hljs-comment">// broker 端在途写计数</span><br>    <span class="hljs-comment">// 检查:topic 是否 fenced / 消息是否超限 / 延迟投递是否超上限</span><br>    ...<br>    MessageDeduplication.<span class="hljs-type">MessageDupStatus</span> <span class="hljs-variable">status</span> <span class="hljs-operator">=</span><br>            messageDeduplication.isDuplicate(publishContext, headersAndPayload);<br>    <span class="hljs-keyword">switch</span> (status) &#123;<br>        <span class="hljs-keyword">case</span> NotDup:  asyncAddEntry(headersAndPayload, publishContext);  <span class="hljs-keyword">break</span>;  <span class="hljs-comment">// 落盘</span><br>        <span class="hljs-keyword">case</span> Dup:     publishContext.completed(<span class="hljs-literal">null</span>, -<span class="hljs-number">1</span>, -<span class="hljs-number">1</span>);            <span class="hljs-keyword">break</span>;  <span class="hljs-comment">// 直接回执,不落盘</span><br>        <span class="hljs-keyword">default</span>:      <span class="hljs-comment">// Unknown:producer 刚重连,去重状态未恢复,无法判定 → 报错</span><br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>三个分支的意义：</p>
+<table>
+<thead>
+<tr>
+<th>状态</th>
+<th>含义</th>
+<th>处理</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>NotDup</code></td>
+<td>sequenceId 没见过</td>
+<td>写入存储（下一课）</td>
+</tr>
+<tr>
+<td><code>Dup</code></td>
+<td>sequenceId 见过（重连重发）</td>
+<td><strong>不落盘，直接回 SendReceipt</strong></td>
+</tr>
+<tr>
+<td><code>Unknown</code></td>
+<td>无法判定（producer 重连中）</td>
+<td>报错，客户端会重试</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>第一课说”broker 端 sequenceId 去重”就在这里兑现。客户端重发 → broker 去重 → 不产生重复，<br>这就是 <strong>at-least-once（至少一次）语义</strong>的完整闭环。</p>
+</blockquote>
+<h2 id="5-三个值得记住的设计点"><a href="#5-三个值得记住的设计点" class="headerlink" title="5. 三个值得记住的设计点"></a>5. 三个值得记住的设计点</h2><ol>
+<li><strong>去重的落点</strong>在 <code>PersistentTopic</code>，去重状态持久化在名为 <code>pulsar.dedup</code> 的游标上（后面讲游标时会再见到）。</li>
+<li><strong>broker 端也有背压</strong>：<code>pendingWriteOps</code> + <code>increasePendingSendRequestsAndPublishBytes</code>，和客户端的 <code>pendingMessages</code> 一一对应，构成端到端背压。</li>
+<li><strong>有序性靠线程模型，两端一致</strong>：客户端靠 netty event loop 串行写，broker 靠 <code>topicOrderedExecutor.executeOrdered(topicName, ...)</code> 把同一 topic 的操作串行化。再次印证：<strong>顺序不是靠锁，是靠线程</strong>。</li>
+</ol>
+<h2 id="6-完整接收链路"><a href="#6-完整接收链路" class="headerlink" title="6. 完整接收链路"></a>6. 完整接收链路</h2><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs text">TCP 字节流<br>  → ServerCnx(连接级 handler)<br>      ├─ handleProducer(newProducer 命令)<br>      │     鉴权 → service.getOrCreateTopic()  ← 管家登场<br>      │     → topic.addProducer() → 回 ProducerSuccess<br>      └─ handleSend(SEND 命令)<br>            按 producerId 找到 broker 端 Producer<br>            → producer.publishMessage(...)<br>                → PersistentTopic.publishMessage:<br>                    检查(fenced/超限) → 去重判定 → asyncAddEntry() 落盘<br></code></pre></td></tr></table></figure>
+
+<h2 id="自查问题"><a href="#自查问题" class="headerlink" title="自查问题"></a>自查问题</h2><details>
+<summary>1. getTopic 里为什么用 topics map 做"未来即缓存"？不用会怎样？</summary>
+
+<p>两个客户端同时第一次发消息到同一个新 topic，若不做合并，会触发两次 topic 加载、创建出两个 Topic 对象，<br>后一个覆盖前一个导致状态丢失&#x2F;资源泄漏。用 <code>Future</code> 做缓存，并发请求共享同一个加载过程，只有一个真正执行。</p>
+</details>
+
+<details>
+<summary>2. 去重返回 Unknown 时，broker 为什么报错而不是落盘？</summary>
+
+<p>“无法判定是否重复”时若落盘，而这条消息实际是重连前的重发，就会产生重复消息且无法挽回<br>（存储层不会二次检查）。报错让客户端重试，等去重状态恢复（producer 重新注册完成）后再判定，<br>宁可暂时失败，不冒重复风险。</p>
+</details>
+
+<h2 id="下一课预告"><a href="#下一课预告" class="headerlink" title="下一课预告"></a>下一课预告</h2><p><code>asyncAddEntry()</code> 走进 <code>managed-ledger</code> 模块：为什么 BookKeeper 之上还要一层、四个核心抽象、<br>topic 的数据最终长什么样。见 <a href="03.ManagedLedger%E5%AE%9A%E4%BD%8D%E4%B8%8E%E6%95%B0%E6%8D%AE%E6%A8%A1%E5%9E%8B.md">第 03 课</a>。</p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/pulsar/" class="category-chain-item">pulsar</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/pulsar/" class="print-no-link">#pulsar</a>
+      
+        <a href="/tags/broker/" class="print-no-link">#broker</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>Pulsar Broker 接收链路</div>
+      <div>https://falser101.github.io/2026/08/03/2026/02.Broker接收链路/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>falser101</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年8月3日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/08/03/2026/01.%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%8F%91%E9%80%81%E9%93%BE%E8%B7%AF/" title="Pulsar 客户端发送链路">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">Pulsar 客户端发送链路</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2025/06/25/2025/kde%E5%85%A8%E5%B1%80%E8%8F%9C%E5%8D%95/" title="kde全局菜单">
+                        <span class="hidden-mobile">kde全局菜单</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+    <div id="giscus" class="giscus"></div>
+    <script type="text/javascript">
+      Fluid.utils.loadComments('#giscus', function() {
+        var options = {"repo":"falser101/falser101.github.io","repo-id":"R_kgDOMveGqw","category":"Announcements","category-id":"DIC_kwDOMveGq84ClgWQ","theme-light":"light","theme-dark":"dark","mapping":"pathname","reactions-enabled":1,"emit-metadata":0,"input-position":"top","lang":"zh-CN"};
+        var attributes = {};
+        for (let option in options) {
+          if (!option.startsWith('theme-')) {
+            var key = option.startsWith('data-') ? option : 'data-' + option;
+            attributes[key] = options[option];
+          }
+        }
+        var light = 'light';
+        var dark = 'dark';
+        window.GiscusThemeLight = light;
+        window.GiscusThemeDark = dark;
+        attributes['data-theme'] = document.documentElement.getAttribute('data-user-color-scheme') === 'dark' ? dark : light;
+        for (let attribute in attributes) {
+          var value = attributes[attribute];
+          if (value === undefined || value === null || value === '') {
+            delete attributes[attribute];
+          }
+        }
+        var s = document.createElement('script');
+        s.setAttribute('src', 'https://giscus.app/client.js');
+        s.setAttribute('crossorigin', 'anonymous');
+        for (let attribute in attributes) {
+          s.setAttribute(attribute, attributes[attribute]);
+        }
+        var ss = document.getElementsByTagName('script');
+        var e = ss.length > 0 ? ss[ss.length - 1] : document.head || document.documentElement;
+        e.parentNode.insertBefore(s, e.nextSibling);
+      });
+    </script>
+    <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    function isExpandAllEnabled() {
+      return CONFIG.toc && CONFIG.toc.expand_all === true;
+    }
+    function expandAllToc() {
+      if (!isExpandAllEnabled()) { return; }
+      jQuery('#toc-body .tocbot-is-collapsed').removeClass('tocbot-is-collapsed');
+    }
+    function updateTocToggle($li, $childList) {
+      var $toggle = $li.children('.toc-toggle');
+      if ($toggle.length === 0) { return; }
+      var collapsed = $childList.hasClass('tocbot-is-collapsed');
+      $toggle
+        .toggleClass('toc-toggle-collapsed', collapsed)
+        .toggleClass('toc-toggle-expanded', !collapsed);
+    }
+    function bindTocToggle() {
+      if (!isExpandAllEnabled()) { return; }
+      jQuery('#toc-body .toc-list-item').each(function() {
+        var $li = jQuery(this);
+        var $childList = $li.children('ol');
+        if ($childList.length === 0) {
+          if ($li.children('.toc-toggle').length === 0) {
+            $li.prepend('<span class="toc-toggle toc-toggle-placeholder" aria-hidden="true">›</span>');
+          }
+          return;
+        }
+
+        if ($li.children('.toc-toggle').length === 0) {
+          $li.prepend('<span class="toc-toggle toc-toggle-expanded" aria-hidden="true">›</span>');
+        }
+        updateTocToggle($li, $childList);
+      });
+      jQuery('#toc-body').off('click.tocToggle').on('click.tocToggle', '.toc-toggle', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var $li = jQuery(this).parent('.toc-list-item');
+        var $childList = $li.children('ol');
+        if ($childList.length === 0) { return; }
+        $childList.toggleClass('tocbot-is-collapsed');
+        updateTocToggle($li, $childList);
+      });
+      if (!window.__tocToggleObserver) {
+        window.__tocToggleObserver = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.type !== 'attributes' || mutation.attributeName !== 'class') { return; }
+            var $list = jQuery(mutation.target);
+            var $li = $list.parent('.toc-list-item');
+            if ($li.length === 0) { return; }
+            updateTocToggle($li, $list);
+          });
+        });
+        jQuery('#toc-body ol').each(function() {
+          window.__tocToggleObserver.observe(this, { attributes: true });
+        });
+      }
+    }
+    var tocConfig = Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc);
+    if (isExpandAllEnabled()) {
+      tocConfig.collapseDepth = 6;
+    }
+    window.tocbot.init(tocConfig);
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+    expandAllToc();
+    bindTocToggle();
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+        expandAllToc();
+        bindTocToggle();
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

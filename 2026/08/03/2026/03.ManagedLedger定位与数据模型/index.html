@@ -1,0 +1,1079 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="falser101">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="从这一课进入存储层。managed-ledger 是面试高频考点（存储模型、游标、ledger 轮转都是经典问题），拆成六课讲。本课解决：为什么需要这一层、四个核心抽象是什么、数据最终怎么组织。  学习目标 说清 BookKeeper 与 ManagedLedger 的分工（面试第一问） 掌握四个核心抽象：ManagedLedger &#x2F; Position &#x2F; Entry &amp;#">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Pulsar Managed-Ledger ① 定位与数据模型">
+<meta property="og:url" content="https://falser101.github.io/2026/08/03/2026/03.ManagedLedger%E5%AE%9A%E4%BD%8D%E4%B8%8E%E6%95%B0%E6%8D%AE%E6%A8%A1%E5%9E%8B/index.html">
+<meta property="og:site_name" content="Falser&#39;s Blog">
+<meta property="og:description" content="从这一课进入存储层。managed-ledger 是面试高频考点（存储模型、游标、ledger 轮转都是经典问题），拆成六课讲。本课解决：为什么需要这一层、四个核心抽象是什么、数据最终怎么组织。  学习目标 说清 BookKeeper 与 ManagedLedger 的分工（面试第一问） 掌握四个核心抽象：ManagedLedger &#x2F; Position &#x2F; Entry &amp;#">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-08-02T16:00:00.000Z">
+<meta property="article:modified_time" content="2026-08-03T06:00:24.350Z">
+<meta property="article:author" content="Falser">
+<meta property="article:tag" content="pulsar">
+<meta property="article:tag" content="managed-ledger">
+<meta property="article:tag" content="bookkeeper">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>Pulsar Managed-Ledger ① 定位与数据模型 - Falser&#39;s Blog</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"falser101.github.io","root":"/","version":"1.9.9","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"expand_all":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"openkounter":{"server_url":"https://open-kounter.mintimate.cn","path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Falser&#39;s Blog</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content (desktop) -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- Mobile grid menu overlay -->
+<div id="mobile-grid-menu" class="d-lg-none">
+  <div class="mobile-grid-menu-inner">
+    <div class="container">
+      <div class="row">
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-home-fill"></i>
+                  <span>首页</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/archives/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-archive-fill"></i>
+                  <span>归档</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/categories/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-category-fill"></i>
+                  <span>分类</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/tags/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-tags-fill"></i>
+                  <span>标签</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/about/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-user-fill"></i>
+                  <span>关于</span>
+                </div>
+              </a>
+            </div>
+          
+        
+        
+          <div class="col-4 mobile-grid-cell" id="mobile-search-btn">
+            <a href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <div class="mobile-grid-item">
+                <i class="iconfont icon-search"></i>
+                <span>搜索</span>
+              </div>
+            </a>
+          </div>
+        
+        
+          <div class="col-4 mobile-grid-cell" id="mobile-color-toggle-btn"
+               data-label-light="开灯"
+               data-label-dark="关灯">
+            <a href="javascript:;" aria-label="Color Toggle">
+              <div class="mobile-grid-item">
+                <i class="iconfont icon-dark" id="mobile-color-toggle-icon"></i>
+                <span id="mobile-color-toggle-label">关灯</span>
+              </div>
+            </a>
+          </div>
+        
+      </div>
+    </div>
+  </div>
+</div>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="Pulsar Managed-Ledger ① 定位与数据模型"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-08-03 00:00" pubdate>
+          2026年8月3日 凌晨
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          7.2k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          61 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">Pulsar Managed-Ledger ① 定位与数据模型</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>从这一课进入存储层。managed-ledger 是面试高频考点（存储模型、游标、ledger 轮转都是经典问题），<br>拆成六课讲。本课解决：为什么需要这一层、四个核心抽象是什么、数据最终怎么组织。</p>
+</blockquote>
+<h2 id="学习目标"><a href="#学习目标" class="headerlink" title="学习目标"></a>学习目标</h2><ul>
+<li>说清 BookKeeper 与 ManagedLedger 的分工（面试第一问）</li>
+<li>掌握四个核心抽象：ManagedLedger &#x2F; Position &#x2F; Entry &#x2F; ManagedCursor</li>
+<li>看懂持久化元数据 <code>ManagedLedgerInfo</code>：一个 ML &#x3D; 一串 ledger</li>
+<li>确认 topic 与 managed-ledger 的对应关系</li>
+<li>知道 ManagedLedger 的元数据存哪、怎么存（可插拔元数据存储，默认 ZK）</li>
+</ul>
+<h2 id="相关代码"><a href="#相关代码" class="headerlink" title="相关代码"></a>相关代码</h2><table>
+<thead>
+<tr>
+<th>文件</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>managed-ledger/.../mledger/ManagedLedger.java</code></td>
+<td>核心接口：追加日志</td>
+</tr>
+<tr>
+<td><code>managed-ledger/.../mledger/Position.java</code></td>
+<td>位置：(ledgerId, entryId)</td>
+</tr>
+<tr>
+<td><code>managed-ledger/.../mledger/Entry.java</code></td>
+<td>数据单元</td>
+</tr>
+<tr>
+<td><code>managed-ledger/.../mledger/ManagedCursor.java</code></td>
+<td>游标（订阅位置）</td>
+</tr>
+<tr>
+<td><code>managed-ledger/.../mledger/ManagedLedgerInfo.java</code></td>
+<td>持久化元数据，数据模型的钥匙</td>
+</tr>
+<tr>
+<td><code>managed-ledger/.../impl/MetaStoreImpl.java</code></td>
+<td>元数据读写，路径 <code>/managed-ledgers/...</code></td>
+</tr>
+<tr>
+<td><code>managed-ledger/src/main/proto/MLDataFormats.proto</code></td>
+<td>落盘的 protobuf 数据结构</td>
+</tr>
+<tr>
+<td><code>pulsar-metadata/.../impl/MetadataStoreFactoryImpl.java</code></td>
+<td>按 URL scheme 选择存储后端</td>
+</tr>
+<tr>
+<td><code>pulsar-broker/.../service/BrokerService.java</code></td>
+<td>topic 加载时打开 ledger</td>
+</tr>
+</tbody></table>
+<h2 id="1-它在架构里的位置"><a href="#1-它在架构里的位置" class="headerlink" title="1. 它在架构里的位置"></a>1. 它在架构里的位置</h2><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs text">Producer ──▶ Broker ──▶ ManagedLedger ──▶ BookKeeper(bookie 集群)<br>              │             │                   │<br>          PersistentTopic  cursor/ledger    分布式日志存储<br>          (消息语义)      (队列语义)          (原始存储)<br></code></pre></td></tr></table></figure>
+
+<p>一句话：**BookKeeper 只提供”分布式追加日志”（写 entry、按 entryId 读），它不懂”队列”**。<br>ManagedLedger 在它上面补上了队列需要的三样东西：</p>
+<ol>
+<li><strong>游标（Cursor）</strong> —— 多个消费者各自记录”我读到哪了”</li>
+<li><strong>数据删除</strong> —— 消费过的数据要能回收（BookKeeper 的 ledger 一旦写入只能整体删）</li>
+<li><strong>保留与回溯</strong> —— retention 策略、按时间&#x2F;位置回溯</li>
+</ol>
+<p>打个比方：<strong>BookKeeper 是硬盘，ManagedLedger 是文件系统</strong>——硬盘只负责存扇区，文件系统才有<br>“目录、删除、回收站”这些概念。</p>
+<blockquote>
+<p>面试回答”为什么 Pulsar 要把存储层拆出来”：让消息队列语义（游标&#x2F;ack&#x2F;backlog）和分布式存储<br>（复制&#x2F;追加&#x2F;容灾）各自独立演进，存储层可替换（tiered storage 就是证据）。</p>
+</blockquote>
+<h2 id="2-四个核心抽象"><a href="#2-四个核心抽象" class="headerlink" title="2. 四个核心抽象"></a>2. 四个核心抽象</h2><h3 id="①-ManagedLedger-——-追加日志"><a href="#①-ManagedLedger-——-追加日志" class="headerlink" title="① ManagedLedger —— 追加日志"></a>① ManagedLedger —— 追加日志</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">interface</span> <span class="hljs-title class_">ManagedLedger</span> &#123;<br>    Position <span class="hljs-title function_">addEntry</span><span class="hljs-params">(<span class="hljs-type">byte</span>[] data)</span>;                          <span class="hljs-comment">// 同步,是下面的薄包装</span><br>    <span class="hljs-keyword">void</span> <span class="hljs-title function_">asyncAddEntry</span><span class="hljs-params">(<span class="hljs-type">byte</span>[] data, AddEntryCallback callback, Object ctx)</span>;<br><br>    ManagedCursor <span class="hljs-title function_">openCursor</span><span class="hljs-params">(String name)</span>;                   <span class="hljs-comment">// 开一个&quot;订阅游标&quot;</span><br>    <span class="hljs-keyword">void</span> <span class="hljs-title function_">deleteCursor</span><span class="hljs-params">(String name)</span>;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>本质就一个词：<strong>append-only</strong>。又是熟悉的”同步 &#x3D; 异步包装”模式——Pulsar 全栈统一。</p>
+<h3 id="②-Position-——-位置-ledgerId-entryId"><a href="#②-Position-——-位置-ledgerId-entryId" class="headerlink" title="② Position —— 位置 &#x3D; (ledgerId, entryId)"></a>② Position —— 位置 &#x3D; (ledgerId, entryId)</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">interface</span> <span class="hljs-title class_">Position</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_">Comparable</span>&lt;Position&gt; &#123;<br>    <span class="hljs-type">long</span> <span class="hljs-title function_">getLedgerId</span><span class="hljs-params">()</span>;<br>    <span class="hljs-type">long</span> <span class="hljs-title function_">getEntryId</span><span class="hljs-params">()</span>;<br>    <span class="hljs-comment">// 比较规则:先比 ledgerId,再比 entryId</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p><strong>这是整个 Pulsar 的坐标系统</strong>。消息 ID、游标位置、ack 位置、backlog 计算全部用它表示。<br>面试标准答案：**<code>(ledgerId, entryId)</code> 二元组，先比 ledger 后比 entry**。</p>
+<h3 id="③-Entry-——-数据单元"><a href="#③-Entry-——-数据单元" class="headerlink" title="③ Entry —— 数据单元"></a>③ Entry —— 数据单元</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">interface</span> <span class="hljs-title class_">Entry</span> &#123;<br>    <span class="hljs-type">byte</span>[] getData();<br>    Position <span class="hljs-title function_">getPosition</span><span class="hljs-params">()</span>;   <span class="hljs-comment">// 这条数据落在哪个位置</span><br>    <span class="hljs-type">int</span> <span class="hljs-title function_">getLength</span><span class="hljs-params">()</span>;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>一条 entry &#x3D; 数据 + 位置。<strong>broker 从存储层读出来的最小单位就是 entry</strong>。</p>
+<h3 id="④-ManagedCursor-——-游标"><a href="#④-ManagedCursor-——-游标" class="headerlink" title="④ ManagedCursor —— 游标"></a>④ ManagedCursor —— 游标</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">interface</span> <span class="hljs-title class_">ManagedCursor</span> &#123;<br>    Position <span class="hljs-title function_">getReadPosition</span><span class="hljs-params">()</span>;            <span class="hljs-comment">// 下一个要读的位置</span><br>    <span class="hljs-keyword">void</span> <span class="hljs-title function_">markDelete</span><span class="hljs-params">(Position position)</span>;    <span class="hljs-comment">// 确认删除位置(消费确认的核心!)</span><br>    <span class="hljs-type">long</span> <span class="hljs-title function_">getNumberOfEntriesInBacklog</span><span class="hljs-params">()</span>;    <span class="hljs-comment">// 积压数量</span><br>    <span class="hljs-keyword">void</span> <span class="hljs-title function_">asyncReadEntries</span><span class="hljs-params">(...)</span>;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>游标是”每个订阅一个”。<strong>markDelete 是游标的灵魂</strong>：它标记”这个订阅确认消费到哪了”，<br>backlog &#x3D; 最新位置 − markDelete 位置。（第 05 课详讲）</p>
+<h3 id="速查表"><a href="#速查表" class="headerlink" title="速查表"></a>速查表</h3><table>
+<thead>
+<tr>
+<th>抽象</th>
+<th>一句话</th>
+<th>关键方法&#x2F;字段</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>ManagedLedger</code></td>
+<td>追加日志本体</td>
+<td><code>addEntry</code> &#x2F; <code>openCursor</code></td>
+</tr>
+<tr>
+<td><code>Position</code></td>
+<td>坐标 <code>(ledgerId, entryId)</code></td>
+<td><code>getLedgerId</code> &#x2F; <code>getEntryId</code></td>
+</tr>
+<tr>
+<td><code>Entry</code></td>
+<td>数据 + 位置的最小单元</td>
+<td><code>getData</code> &#x2F; <code>getPosition</code></td>
+</tr>
+<tr>
+<td><code>ManagedCursor</code></td>
+<td>每个订阅一个的消费进度</td>
+<td><code>markDelete</code> &#x2F; <code>getReadPosition</code></td>
+</tr>
+</tbody></table>
+<h2 id="3-数据模型：一个-ML-一串-ledger"><a href="#3-数据模型：一个-ML-一串-ledger" class="headerlink" title="3. 数据模型：一个 ML &#x3D; 一串 ledger"></a>3. 数据模型：一个 ML &#x3D; 一串 ledger</h2><p><code>ManagedLedgerInfo</code> 是持久化在元数据存储里的账本，看它的结构：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">ManagedLedgerInfo</span> &#123;<br>    <span class="hljs-keyword">public</span> List&lt;LedgerInfo&gt; ledgers;        <span class="hljs-comment">// ← 核心!一个 ML = 一串 ledger 的有序序列</span><br>    <span class="hljs-keyword">public</span> PositionInfo terminatedPosition;<br>    <span class="hljs-keyword">public</span> Map&lt;String, CursorInfo&gt; cursors; <span class="hljs-comment">// ← 每个订阅游标的元数据</span><br><br>    <span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">LedgerInfo</span> &#123;<br>        <span class="hljs-keyword">public</span> <span class="hljs-type">long</span> ledgerId;<br>        <span class="hljs-keyword">public</span> Long entries;      <span class="hljs-comment">// 这个 ledger 有多少条 entry</span><br>        <span class="hljs-keyword">public</span> Long size;         <span class="hljs-comment">// 多大</span><br>        <span class="hljs-keyword">public</span> Long timestamp;<br>        <span class="hljs-keyword">public</span> <span class="hljs-type">boolean</span> isOffloaded;  <span class="hljs-comment">// 是否已卸载到分层存储</span><br>    &#125;<br><br>    <span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">CursorInfo</span> &#123;<br>        <span class="hljs-keyword">public</span> <span class="hljs-type">long</span> cursorsLedgerId;    <span class="hljs-comment">// 游标自己的 ledger(存 mark-delete 快照)</span><br>        <span class="hljs-keyword">public</span> PositionInfo markDelete; <span class="hljs-comment">// &quot;已确认消费到哪&quot;的位置</span><br>        <span class="hljs-keyword">public</span> List&lt;MessageRangeInfo&gt; individualDeletedMessages; <span class="hljs-comment">// 单独 ack 的消息(位图)</span><br>    &#125;<br><br>    <span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">PositionInfo</span> &#123;<br>        <span class="hljs-keyword">public</span> <span class="hljs-type">long</span> ledgerId;<br>        <span class="hljs-keyword">public</span> <span class="hljs-type">long</span> entryId;   <span class="hljs-comment">// 位置 = &quot;ledgerId:entryId&quot;</span><br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p><strong>核心洞察：topic 的数据不是一个大文件，而是一串有先后顺序的 BookKeeper ledger</strong>。三个直接推论：</p>
+<ol>
+<li><strong>删除的粒度 &#x3D; ledger</strong>：消费完一个 ledger 里的所有数据，整个 ledger 可以删掉<br>（BookKeeper 不支持删单条 entry，只支持删整个 ledger）——这是必须分 ledger 的根本原因。</li>
+<li><strong>轮转（rollover）</strong>：ledger 写到一定大小就”封存”开新的（第 05 课详讲）。</li>
+<li><strong>游标有独立元数据</strong>：markDelete 存哪、怎么存，是第 06&#x2F;07 课的核心。</li>
+</ol>
+<h2 id="4-与-Topic-的对应关系"><a href="#4-与-Topic-的对应关系" class="headerlink" title="4. 与 Topic 的对应关系"></a>4. 与 Topic 的对应关系</h2><p>在 <code>BrokerService.createPersistentTopic0</code> 里，topic 加载时打开 ledger：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs java">managedLedgerFactory.asyncOpen(topicName.getPersistenceNamingEncoding(), config,<br>    <span class="hljs-keyword">new</span> <span class="hljs-title class_">OpenLedgerCallback</span>() &#123;<br>        <span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">openLedgerComplete</span><span class="hljs-params">(ManagedLedger ledger, Object ctx)</span> &#123;<br>            <span class="hljs-type">PersistentTopic</span> <span class="hljs-variable">persistentTopic</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">PersistentTopic</span>(topic, ledger, BrokerService.<span class="hljs-built_in">this</span>);<br>            ...<br></code></pre></td></tr></table></figure>
+
+<p>而 <code>PersistentTopic</code> 里：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">protected</span> <span class="hljs-keyword">final</span> ManagedLedger ledger;   <span class="hljs-comment">// ← 每个 persistent topic 持有自己的 ML</span><br></code></pre></td></tr></table></figure>
+
+<p><strong>结论：一个 topic 分区 &#x3D; 一个 ManagedLedger</strong>，ledger 的名字是 topic 的 persistence naming encoding。<br>“topic 的数据存哪”的答案就是：它对应的那个 ManagedLedger 的 ledger 序列里。</p>
+<h2 id="5-元数据存储：ManagedLedger-的元数据存在哪"><a href="#5-元数据存储：ManagedLedger-的元数据存在哪" class="headerlink" title="5. 元数据存储：ManagedLedger 的元数据存在哪"></a>5. 元数据存储：ManagedLedger 的元数据存在哪</h2><h3 id="抽象链：三层委托，后端可插拔"><a href="#抽象链：三层委托，后端可插拔" class="headerlink" title="抽象链：三层委托，后端可插拔"></a>抽象链：三层委托，后端可插拔</h3><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs text">ManagedLedgerImpl<br>  └─ MetaStore(接口,managed-ledger 模块)<br>       └─ MetaStoreImpl                 ← 读写 ManagedLedgerInfo,路径 /managed-ledgers/...<br>            └─ MetadataStore(接口,pulsar-metadata 模块)<br>                 ├─ ZKMetadataStore        zk://      ← 经典默认<br>                 ├─ EtcdMetadataStore      etcd://<br>                 ├─ RocksdbMetadataStore   rocksdb://<br>                 ├─ LocalMemoryMetadataStore memory://(测试用)<br>                 └─ OxiaMetadataStoreProvider oxia://(新版)<br></code></pre></td></tr></table></figure>
+
+<p><code>MetaStoreImpl</code> 自己不存数据，所有读写委托给 <code>MetadataStore</code>。选哪个实现由配置<br><code>metadataStoreUrl</code> 的 URL scheme 决定（<code>MetadataStoreFactoryImpl.loadProviders()</code> 按 scheme 查表）。<br>ZK 只是默认，不是写死——换成 <code>etcd://</code> 等即可。</p>
+<h3 id="持久化的数据结构（protobuf）"><a href="#持久化的数据结构（protobuf）" class="headerlink" title="持久化的数据结构（protobuf）"></a>持久化的数据结构（protobuf）</h3><p>内存里的 Java 类（<code>ManagedLedgerInfo.java</code>，见第 3 节）和落盘的 <strong>protobuf 消息</strong><br>（<code>managed-ledger/src/main/proto/MLDataFormats.proto</code>）是两套表示，存取时互相转换：</p>
+<figure class="highlight proto"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><code class="hljs proto"><span class="hljs-keyword">message </span><span class="hljs-title class_">ManagedLedgerInfo</span> &#123;<br>    <span class="hljs-keyword">message </span><span class="hljs-title class_">LedgerInfo</span> &#123;<br>        <span class="hljs-keyword">required</span> <span class="hljs-type">int64</span> ledgerId = <span class="hljs-number">1</span>;<br>        <span class="hljs-keyword">optional</span> <span class="hljs-type">int64</span> entries = <span class="hljs-number">2</span>;<br>        <span class="hljs-keyword">optional</span> <span class="hljs-type">int64</span> size = <span class="hljs-number">3</span>;<br>        <span class="hljs-keyword">optional</span> <span class="hljs-type">int64</span> timestamp = <span class="hljs-number">4</span>;<br>        <span class="hljs-keyword">optional</span> OffloadContext offloadContext = <span class="hljs-number">5</span>;   <span class="hljs-comment">// 分层存储卸载上下文</span><br>    &#125;<br>    <span class="hljs-keyword">repeated</span> LedgerInfo ledgerInfo = <span class="hljs-number">1</span>;    <span class="hljs-comment">// ledgers 列表(与 Java 类对应)</span><br>    <span class="hljs-comment">// 其余字段:terminatedPosition、cursors、properties,与 Java 类一一对应</span><br>&#125;<br><br><span class="hljs-keyword">message </span><span class="hljs-title class_">PositionInfo</span> &#123;<br>    <span class="hljs-keyword">required</span> <span class="hljs-type">int64</span> ledgerId = <span class="hljs-number">1</span>;<br>    <span class="hljs-keyword">required</span> <span class="hljs-type">int64</span> entryId = <span class="hljs-number">2</span>;<br>    <span class="hljs-keyword">repeated</span> MessageRange individualDeletedMessages = <span class="hljs-number">3</span>;   <span class="hljs-comment">// 单独 ack 的消息区间</span><br>    <span class="hljs-keyword">repeated</span> LongProperty properties = <span class="hljs-number">4</span>;<br>    <span class="hljs-keyword">repeated</span> BatchedEntryDeletionIndexInfo batchedEntryDeletionIndexInfo = <span class="hljs-number">5</span>; <span class="hljs-comment">// 批量内删除索引</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h3 id="存到哪个位置"><a href="#存到哪个位置" class="headerlink" title="存到哪个位置"></a>存到哪个位置</h3><p><code>MetaStoreImpl</code> 里写死根路径：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-type">String</span> <span class="hljs-variable">BASE_NODE</span> <span class="hljs-operator">=</span> <span class="hljs-string">&quot;/managed-ledgers&quot;</span>;<br></code></pre></td></tr></table></figure>
+
+<p>一个 ML 的元数据 &#x3D; 一个节点，路径 &#x3D; 根路径 + ML 名字（即第 4 节的 persistence naming encoding）：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs text">/managed-ledgers/tenant/ns/persistent/my-topic-partition-0<br></code></pre></td></tr></table></figure>
+
+<p>节点内容就是序列化后的 <code>ManagedLedgerInfo</code>（protobuf）。</p>
+<h3 id="两个容易混淆的路径"><a href="#两个容易混淆的路径" class="headerlink" title="两个容易混淆的路径"></a>两个容易混淆的路径</h3><p>元数据存储里有两套带 “ledger” 的路径，用途完全不同：</p>
+<table>
+<thead>
+<tr>
+<th>路径</th>
+<th>谁写</th>
+<th>存什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>/managed-ledgers/...</code></td>
+<td>Pulsar 的 <code>MetaStoreImpl</code></td>
+<td><strong>ManagedLedgerInfo</strong>：ledgers 列表、cursors、markDelete 位置</td>
+</tr>
+<tr>
+<td><code>/ledgers/...</code></td>
+<td>BookKeeper 客户端（bookie）</td>
+<td><strong>BookKeeper ledger 元数据</strong>：ensemble、quorum、ledger 状态</td>
+</tr>
+</tbody></table>
+<h3 id="数据-vs-元数据的分界"><a href="#数据-vs-元数据的分界" class="headerlink" title="数据 vs 元数据的分界"></a>数据 vs 元数据的分界</h3><table>
+<thead>
+<tr>
+<th>内容</th>
+<th>存哪</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>消息内容（entry 数据）</td>
+<td><strong>bookie 本地磁盘</strong>（journal + entrylog）</td>
+</tr>
+<tr>
+<td>ManagedLedgerInfo（ledgers 列表、游标）</td>
+<td>元数据存储 <code>/managed-ledgers/...</code></td>
+</tr>
+<tr>
+<td>游标 markDelete 的<strong>快照</strong></td>
+<td>元数据存储（频繁更新走游标自己的 ledger，第 06&#x2F;07 课详讲）</td>
+</tr>
+<tr>
+<td>BookKeeper ledger 元数据</td>
+<td>元数据存储 <code>/ledgers/...</code></td>
+</tr>
+</tbody></table>
+<p>一句话：<strong>元数据存储只存”账本结构”（哪些 ledger、游标在哪），数据本身在 bookie 磁盘上</strong>。</p>
+<h2 id="本课精华"><a href="#本课精华" class="headerlink" title="本课精华"></a>本课精华</h2><ol>
+<li>BookKeeper &#x3D; 硬盘（原始存储），ManagedLedger &#x3D; 文件系统（队列语义）</li>
+<li>位置 &#x3D; <code>(ledgerId, entryId)</code>，先比 ledger 后比 entry</li>
+<li>一个 ML &#x3D; 一串 ledger；删除粒度 &#x3D; ledger，这就是必须轮转的根本原因</li>
+<li>一个 topic 分区 &#x3D; 一个 ManagedLedger</li>
+<li>元数据分层：ManagedLedger → MetaStore → MetadataStore（ZK&#x2F;etcd&#x2F;…），存于 <code>/managed-ledgers/...</code></li>
+</ol>
+<h2 id="自查问题"><a href="#自查问题" class="headerlink" title="自查问题"></a>自查问题</h2><details>
+<summary>1. Pulsar 里一条消息的"地址"是什么？怎么比较两个地址的先后？</summary>
+
+<p><code>(ledgerId, entryId)</code>。先比 ledgerId，再比 entryId。</p>
+</details>
+
+<details>
+<summary>2. 为什么 BookKeeper 之上还要有 ManagedLedger 一层？</summary>
+
+<p>BookKeeper 只提供分布式追加日志（写 entry、按 id 读），不懂队列语义。ManagedLedger 补上：<br>游标（多消费者各自记录位置）、数据删除（消费过可回收）、保留与回溯。同时让存储层可替换。</p>
+</details>
+
+<details>
+<summary>3. 为什么一个 topic 的数据要分成多个 ledger？</summary>
+
+<p>BookKeeper 只支持整体删除 ledger。若只有一个大 ledger，消费过的数据无法回收，磁盘只增不减。<br>分成多个 ledger 后，消费完的旧 ledger 可直接删除。轮转还带来其他好处（见第 05 课）。</p>
+</details>
+
+<details>
+<summary>4. 元数据存储里为什么有两套带 "ledger" 的路径？分别存什么？</summary>
+
+<p><code>/managed-ledgers/...</code> 是 Pulsar 的 ManagedLedgerInfo（ledgers 列表、游标），由 <code>MetaStoreImpl</code> 写；<br><code>/ledgers/...</code> 是 BookKeeper 自己的 ledger 元数据（ensemble、quorum），由 bookie 客户端写。<br>名字都带 “ledger”，但一个是 Pulsar 的队列元数据，一个是 BookKeeper 的副本元数据。</p>
+</details>
+
+<details>
+<summary>5. 消息内容和它的元数据分别存在哪？为什么这么分？</summary>
+
+<p>消息内容（entry）存在 bookie 本地磁盘（journal + entrylog）；元数据（ledgers 列表、游标位置）<br>存在元数据存储（默认 ZK 的 <code>/managed-ledgers/...</code>）。因为元数据需要跨 broker&#x2F;bookie 共享与协调<br>（哪个 broker 拥有 topic、游标进度等），而数据只需按位置读写，放本地磁盘性能最好。</p>
+</details>
+
+<h2 id="下一课预告"><a href="#下一课预告" class="headerlink" title="下一课预告"></a>下一课预告</h2><p><code>PersistentTopic.publishMessage</code> 里的 <code>asyncAddEntry()</code> 到底做了什么？<br>见 <a href="04.ManagedLedger%E5%86%99%E5%85%A5%E8%B7%AF%E5%BE%84.md">第 04 课</a>。</p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/pulsar/" class="category-chain-item">pulsar</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/pulsar/" class="print-no-link">#pulsar</a>
+      
+        <a href="/tags/managed-ledger/" class="print-no-link">#managed-ledger</a>
+      
+        <a href="/tags/bookkeeper/" class="print-no-link">#bookkeeper</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>Pulsar Managed-Ledger ① 定位与数据模型</div>
+      <div>https://falser101.github.io/2026/08/03/2026/03.ManagedLedger定位与数据模型/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>falser101</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年8月3日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2026/08/03/2026/04.ManagedLedger%E5%86%99%E5%85%A5%E8%B7%AF%E5%BE%84/" title="Pulsar Managed-Ledger ② 写入路径">
+                        <span class="hidden-mobile">Pulsar Managed-Ledger ② 写入路径</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+    <div id="giscus" class="giscus"></div>
+    <script type="text/javascript">
+      Fluid.utils.loadComments('#giscus', function() {
+        var options = {"repo":"falser101/falser101.github.io","repo-id":"R_kgDOMveGqw","category":"Announcements","category-id":"DIC_kwDOMveGq84ClgWQ","theme-light":"light","theme-dark":"dark","mapping":"pathname","reactions-enabled":1,"emit-metadata":0,"input-position":"top","lang":"zh-CN"};
+        var attributes = {};
+        for (let option in options) {
+          if (!option.startsWith('theme-')) {
+            var key = option.startsWith('data-') ? option : 'data-' + option;
+            attributes[key] = options[option];
+          }
+        }
+        var light = 'light';
+        var dark = 'dark';
+        window.GiscusThemeLight = light;
+        window.GiscusThemeDark = dark;
+        attributes['data-theme'] = document.documentElement.getAttribute('data-user-color-scheme') === 'dark' ? dark : light;
+        for (let attribute in attributes) {
+          var value = attributes[attribute];
+          if (value === undefined || value === null || value === '') {
+            delete attributes[attribute];
+          }
+        }
+        var s = document.createElement('script');
+        s.setAttribute('src', 'https://giscus.app/client.js');
+        s.setAttribute('crossorigin', 'anonymous');
+        for (let attribute in attributes) {
+          s.setAttribute(attribute, attributes[attribute]);
+        }
+        var ss = document.getElementsByTagName('script');
+        var e = ss.length > 0 ? ss[ss.length - 1] : document.head || document.documentElement;
+        e.parentNode.insertBefore(s, e.nextSibling);
+      });
+    </script>
+    <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    function isExpandAllEnabled() {
+      return CONFIG.toc && CONFIG.toc.expand_all === true;
+    }
+    function expandAllToc() {
+      if (!isExpandAllEnabled()) { return; }
+      jQuery('#toc-body .tocbot-is-collapsed').removeClass('tocbot-is-collapsed');
+    }
+    function updateTocToggle($li, $childList) {
+      var $toggle = $li.children('.toc-toggle');
+      if ($toggle.length === 0) { return; }
+      var collapsed = $childList.hasClass('tocbot-is-collapsed');
+      $toggle
+        .toggleClass('toc-toggle-collapsed', collapsed)
+        .toggleClass('toc-toggle-expanded', !collapsed);
+    }
+    function bindTocToggle() {
+      if (!isExpandAllEnabled()) { return; }
+      jQuery('#toc-body .toc-list-item').each(function() {
+        var $li = jQuery(this);
+        var $childList = $li.children('ol');
+        if ($childList.length === 0) {
+          if ($li.children('.toc-toggle').length === 0) {
+            $li.prepend('<span class="toc-toggle toc-toggle-placeholder" aria-hidden="true">›</span>');
+          }
+          return;
+        }
+
+        if ($li.children('.toc-toggle').length === 0) {
+          $li.prepend('<span class="toc-toggle toc-toggle-expanded" aria-hidden="true">›</span>');
+        }
+        updateTocToggle($li, $childList);
+      });
+      jQuery('#toc-body').off('click.tocToggle').on('click.tocToggle', '.toc-toggle', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var $li = jQuery(this).parent('.toc-list-item');
+        var $childList = $li.children('ol');
+        if ($childList.length === 0) { return; }
+        $childList.toggleClass('tocbot-is-collapsed');
+        updateTocToggle($li, $childList);
+      });
+      if (!window.__tocToggleObserver) {
+        window.__tocToggleObserver = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.type !== 'attributes' || mutation.attributeName !== 'class') { return; }
+            var $list = jQuery(mutation.target);
+            var $li = $list.parent('.toc-list-item');
+            if ($li.length === 0) { return; }
+            updateTocToggle($li, $list);
+          });
+        });
+        jQuery('#toc-body ol').each(function() {
+          window.__tocToggleObserver.observe(this, { attributes: true });
+        });
+      }
+    }
+    var tocConfig = Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc);
+    if (isExpandAllEnabled()) {
+      tocConfig.collapseDepth = 6;
+    }
+    window.tocbot.init(tocConfig);
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+    expandAllToc();
+    bindTocToggle();
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+        expandAllToc();
+        bindTocToggle();
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

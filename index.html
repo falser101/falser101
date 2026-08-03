@@ -19,12 +19,12 @@
   <meta name="author" content="Falser">
   <meta name="keywords" content="">
   
-    <meta name="description" content="记录我的工作、学习、生活相关的日志，包括linux、k8s、黑苹果、pulsar、Java、golang">
+    <meta name="description" content="记录我的工作、学习、生活相关的日志，包括linux、k8s、pulsar、Java、golang">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Falser&#39;s Blog">
 <meta property="og:url" content="https://falser101.github.io/index.html">
 <meta property="og:site_name" content="Falser&#39;s Blog">
-<meta property="og:description" content="记录我的工作、学习、生活相关的日志，包括linux、k8s、黑苹果、pulsar、Java、golang">
+<meta property="og:description" content="记录我的工作、学习、生活相关的日志，包括linux、k8s、pulsar、Java、golang">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:author" content="Falser">
 <meta name="twitter:card" content="summary_large_image">
@@ -335,6 +335,264 @@
     <article class="col-12 col-md-12 mx-auto index-info">
       <h2 class="index-header">
         
+        <a href="/2026/08/03/2026/03.ManagedLedger%E5%AE%9A%E4%BD%8D%E4%B8%8E%E6%95%B0%E6%8D%AE%E6%A8%A1%E5%9E%8B/" target="_self">
+          Pulsar Managed-Ledger ① 定位与数据模型
+        </a>
+      </h2>
+
+      
+      <a class="index-excerpt index-excerpt__noimg" href="/2026/08/03/2026/03.ManagedLedger%E5%AE%9A%E4%BD%8D%E4%B8%8E%E6%95%B0%E6%8D%AE%E6%A8%A1%E5%9E%8B/" target="_self">
+        <div>
+          从这一课进入存储层。managed-ledger 是面试高频考点（存储模型、游标、ledger 轮转都是经典问题），拆成六课讲。本课解决：为什么需要这一层、四个核心抽象是什么、数据最终怎么组织。  学习目标 说清 BookKeeper 与 ManagedLedger 的分工（面试第一问） 掌握四个核心抽象：ManagedLedger &#x2F; Position &#x2F; Entry &#
+        </div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>
+            <time datetime="2026-08-03 00:00" pubdate>
+              2026-08-03
+            </time>
+          </div>
+        
+        
+          <div class="post-meta mr-3 d-flex align-items-center">
+            <i class="iconfont icon-category"></i>
+            
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/pulsar/" class="category-chain-item">pulsar</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+          </div>
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/pulsar/">#pulsar</a>
+            
+              <a href="/tags/managed-ledger/">#managed-ledger</a>
+            
+              <a href="/tags/bookkeeper/">#bookkeeper</a>
+            
+          </div>
+        
+      </div>
+    </article>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <article class="col-12 col-md-12 mx-auto index-info">
+      <h2 class="index-header">
+        
+        <a href="/2026/08/03/2026/04.ManagedLedger%E5%86%99%E5%85%A5%E8%B7%AF%E5%BE%84/" target="_self">
+          Pulsar Managed-Ledger ② 写入路径
+        </a>
+      </h2>
+
+      
+      <a class="index-excerpt index-excerpt__noimg" href="/2026/08/03/2026/04.ManagedLedger%E5%86%99%E5%85%A5%E8%B7%AF%E5%BE%84/" target="_self">
+        <div>
+          上一课结尾的问题：broker 调用的 asyncAddEntry() 到底做了什么？本课完整走一遍写入路径：从 ManagedLedgerImpl.asyncAddEntry 到 OpAddEntry，再到真正写进 BookKeeper、分配位置、通知上层。  学习目标 掌握写入路径的完整调用链 理解有序性的三层保险：单线程入口 + FIFO 队列 + 完成也串行 搞清楚”单线程”的真相：共享
+        </div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>
+            <time datetime="2026-08-03 00:00" pubdate>
+              2026-08-03
+            </time>
+          </div>
+        
+        
+          <div class="post-meta mr-3 d-flex align-items-center">
+            <i class="iconfont icon-category"></i>
+            
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/pulsar/" class="category-chain-item">pulsar</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+          </div>
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/pulsar/">#pulsar</a>
+            
+              <a href="/tags/managed-ledger/">#managed-ledger</a>
+            
+              <a href="/tags/bookkeeper/">#bookkeeper</a>
+            
+          </div>
+        
+      </div>
+    </article>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <article class="col-12 col-md-12 mx-auto index-info">
+      <h2 class="index-header">
+        
+        <a href="/2026/08/03/2026/01.%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%8F%91%E9%80%81%E9%93%BE%E8%B7%AF/" target="_self">
+          Pulsar 客户端发送链路
+        </a>
+      </h2>
+
+      
+      <a class="index-excerpt index-excerpt__noimg" href="/2026/08/03/2026/01.%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%8F%91%E9%80%81%E9%93%BE%E8%B7%AF/" target="_self">
+        <div>
+          主线起点。搞清你在代码里写 producer.send(&quot;hello&quot;) 之后，这一条消息在客户端内部经历了什么，直到变成网络上的字节流。  学习目标 理解 Pulsar 客户端”同步 API 是异步的薄包装”这一贯穿全栈的模式 掌握 batching（批量）、背压、有序性、sequenceId 四个机制在发送路径上的落点 看懂协议帧的二进制结构  相关代码（按阅读顺序）
+        </div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>
+            <time datetime="2026-08-03 00:00" pubdate>
+              2026-08-03
+            </time>
+          </div>
+        
+        
+          <div class="post-meta mr-3 d-flex align-items-center">
+            <i class="iconfont icon-category"></i>
+            
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/pulsar/" class="category-chain-item">pulsar</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+          </div>
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/pulsar/">#pulsar</a>
+            
+              <a href="/tags/client/">#client</a>
+            
+              <a href="/tags/producer/">#producer</a>
+            
+          </div>
+        
+      </div>
+    </article>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <article class="col-12 col-md-12 mx-auto index-info">
+      <h2 class="index-header">
+        
+        <a href="/2026/08/03/2026/02.Broker%E6%8E%A5%E6%94%B6%E9%93%BE%E8%B7%AF/" target="_self">
+          Pulsar Broker 接收链路
+        </a>
+      </h2>
+
+      
+      <a class="index-excerpt index-excerpt__noimg" href="/2026/08/03/2026/02.Broker%E6%8E%A5%E6%94%B6%E9%93%BE%E8%B7%AF/" target="_self">
+        <div>
+          第一课的字节流到达 broker 后，ServerCnx 如何还原 SEND 命令，BrokerService（管家）如何管理 topic，消息最终在 PersistentTopic 里通过检查与去重，进入存储层。  学习目标 认识 BrokerService：broker 端所有 topic 的”登记处”和”加载器” 掌握 producer 注册（handleProducer）与消息发布（ha
+        </div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>
+            <time datetime="2026-08-03 00:00" pubdate>
+              2026-08-03
+            </time>
+          </div>
+        
+        
+          <div class="post-meta mr-3 d-flex align-items-center">
+            <i class="iconfont icon-category"></i>
+            
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/pulsar/" class="category-chain-item">pulsar</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+          </div>
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/pulsar/">#pulsar</a>
+            
+              <a href="/tags/broker/">#broker</a>
+            
+          </div>
+        
+      </div>
+    </article>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <article class="col-12 col-md-12 mx-auto index-info">
+      <h2 class="index-header">
+        
         <a href="/2025/06/25/2025/kde%E5%85%A8%E5%B1%80%E8%8F%9C%E5%8D%95/" target="_self">
           kde全局菜单
         </a>
@@ -611,259 +869,11 @@
     </article>
   </div>
 
-  <div class="row mx-auto index-card">
-    
-    
-    <article class="col-12 col-md-12 mx-auto index-info">
-      <h2 class="index-header">
-        
-        <a href="/2024/08/14/2024/01.archlinux%E5%AE%89%E8%A3%85waydroid/" target="_self">
-          archlinux安装waydroid
-        </a>
-      </h2>
-
-      
-      <a class="index-excerpt index-excerpt__noimg" href="/2024/08/14/2024/01.archlinux%E5%AE%89%E8%A3%85waydroid/" target="_self">
-        <div>
-          archlinux安装waydroid  安装1paru -S waydroid  下载镜像1paru -S waydroid-image-gapps  初始化1sudo waydroid init -s GAPPS -f  连接12waydroid session startwaydroid show-full-ui  安装应用1sudo waydroid app install xx.apk
-        </div>
-      </a>
-
-      <div class="index-btm post-metas">
-        
-          <div class="post-meta mr-3">
-            <i class="iconfont icon-date"></i>
-            <time datetime="2024-08-14 00:00" pubdate>
-              2024-08-14
-            </time>
-          </div>
-        
-        
-          <div class="post-meta mr-3 d-flex align-items-center">
-            <i class="iconfont icon-category"></i>
-            
-
-<span class="category-chains">
-  
-  
-    
-      <span class="category-chain">
-        
-  <a href="/categories/linux/" class="category-chain-item">linux</a>
-  
-  
-
-      </span>
-    
-  
-</span>
-
-          </div>
-        
-        
-          <div class="post-meta">
-            <i class="iconfont icon-tags"></i>
-            
-              <a href="/tags/linux/">#linux</a>
-            
-              <a href="/tags/waydroid/">#waydroid</a>
-            
-          </div>
-        
-      </div>
-    </article>
-  </div>
-
-  <div class="row mx-auto index-card">
-    
-    
-    <article class="col-12 col-md-12 mx-auto index-info">
-      <h2 class="index-header">
-        
-        <a href="/2024/08/14/2024/02.iptables%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5/" target="_self">
-          iptables基本概念
-        </a>
-      </h2>
-
-      
-      <a class="index-excerpt index-excerpt__noimg" href="/2024/08/14/2024/02.iptables%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5/" target="_self">
-        <div>
-          iptables基本概念
-        </div>
-      </a>
-
-      <div class="index-btm post-metas">
-        
-          <div class="post-meta mr-3">
-            <i class="iconfont icon-date"></i>
-            <time datetime="2024-08-14 00:00" pubdate>
-              2024-08-14
-            </time>
-          </div>
-        
-        
-          <div class="post-meta mr-3 d-flex align-items-center">
-            <i class="iconfont icon-category"></i>
-            
-
-<span class="category-chains">
-  
-  
-    
-      <span class="category-chain">
-        
-  <a href="/categories/linux/" class="category-chain-item">linux</a>
-  
-  
-
-      </span>
-    
-  
-</span>
-
-          </div>
-        
-        
-          <div class="post-meta">
-            <i class="iconfont icon-tags"></i>
-            
-              <a href="/tags/linux/">#linux</a>
-            
-              <a href="/tags/iptables/">#iptables</a>
-            
-          </div>
-        
-      </div>
-    </article>
-  </div>
-
-  <div class="row mx-auto index-card">
-    
-    
-    <article class="col-12 col-md-12 mx-auto index-info">
-      <h2 class="index-header">
-        
-        <a href="/2024/07/30/2024/kubernetes%20Controller-Manager%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" target="_self">
-          Kubernetes controller-manager源码学习
-        </a>
-      </h2>
-
-      
-      <a class="index-excerpt index-excerpt__noimg" href="/2024/07/30/2024/kubernetes%20Controller-Manager%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" target="_self">
-        <div>
-          Kubernetes controller-manager 关于ControllerManager 官方介绍的很详细了,可查看官方文档 Controller Manager,下面是我对controller-manager源码阅读总结  入口 入口: cmd&#x2F;kube-controller-manager&#x2F;controller-manager.go  12345func main
-        </div>
-      </a>
-
-      <div class="index-btm post-metas">
-        
-          <div class="post-meta mr-3">
-            <i class="iconfont icon-date"></i>
-            <time datetime="2024-07-30 00:00" pubdate>
-              2024-07-30
-            </time>
-          </div>
-        
-        
-          <div class="post-meta mr-3 d-flex align-items-center">
-            <i class="iconfont icon-category"></i>
-            
-
-<span class="category-chains">
-  
-  
-    
-      <span class="category-chain">
-        
-  <a href="/categories/k8s/" class="category-chain-item">k8s</a>
-  
-  
-
-      </span>
-    
-  
-</span>
-
-          </div>
-        
-        
-          <div class="post-meta">
-            <i class="iconfont icon-tags"></i>
-            
-              <a href="/tags/Kubernetes-controller-manager/">#Kubernetes controller-manager</a>
-            
-          </div>
-        
-      </div>
-    </article>
-  </div>
-
-  <div class="row mx-auto index-card">
-    
-    
-    <article class="col-12 col-md-12 mx-auto index-info">
-      <h2 class="index-header">
-        
-        <a href="/2024/07/28/2024/kubernetesScheduler%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" target="_self">
-          Kubernetes Scheduler源码分析
-        </a>
-      </h2>
-
-      
-      <a class="index-excerpt index-excerpt__noimg" href="/2024/07/28/2024/kubernetesScheduler%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" target="_self">
-        <div>
-          Kubernetes Scheduler调度器调度器是 Kubernetes 中的核心组件之一，负责将 Pod 调度到集群中的节点上。调度器的主要职责是根据一系列的调度策略和规则，选择一个最适合运行 Pod 的节点，并将 Pod 绑定到该节点上。 调度器的主要工作流程如下：  调度器监听集群中的 Pod 创建事件，当有新的 Pod 需要调度时，调度器会收到通知。 调度器会根据一系列的调度策略和规则
-        </div>
-      </a>
-
-      <div class="index-btm post-metas">
-        
-          <div class="post-meta mr-3">
-            <i class="iconfont icon-date"></i>
-            <time datetime="2024-07-28 00:00" pubdate>
-              2024-07-28
-            </time>
-          </div>
-        
-        
-          <div class="post-meta mr-3 d-flex align-items-center">
-            <i class="iconfont icon-category"></i>
-            
-
-<span class="category-chains">
-  
-  
-    
-      <span class="category-chain">
-        
-  <a href="/categories/k8s/" class="category-chain-item">k8s</a>
-  
-  
-
-      </span>
-    
-  
-</span>
-
-          </div>
-        
-        
-          <div class="post-meta">
-            <i class="iconfont icon-tags"></i>
-            
-              <a href="/tags/Kubernetes-Scheduler/">#Kubernetes Scheduler</a>
-            
-          </div>
-        
-      </div>
-    </article>
-  </div>
-
 
 
   <nav aria-label="navigation">
     <span class="pagination" id="pagination">
-      <span class="page-number current">1</span><a class="page-number" href="/page/2/#board">2</a><a class="page-number" href="/page/3/#board">3</a><a class="extend next" rel="next" href="/page/2/#board"><i class="iconfont icon-arrowright"></i></a>
+      <span class="page-number current">1</span><a class="page-number" href="/page/2/#board">2</a><a class="page-number" href="/page/3/#board">3</a><a class="page-number" href="/page/4/#board">4</a><a class="extend next" rel="next" href="/page/2/#board"><i class="iconfont icon-arrowright"></i></a>
     </span>
   </nav>
 
