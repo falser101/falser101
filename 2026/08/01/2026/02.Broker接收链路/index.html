@@ -22,12 +22,12 @@
     <meta name="description" content="第一课的字节流到达 broker 后，ServerCnx 如何还原 SEND 命令，BrokerService（管家）如何管理 topic，消息最终在 PersistentTopic 里通过检查与去重，进入存储层。  学习目标 认识 BrokerService：broker 端所有 topic 的”登记处”和”加载器” 掌握 producer 注册（handleProducer）与消息发布（ha">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Pulsar Broker 接收链路">
-<meta property="og:url" content="https://falser101.github.io/2026/08/03/2026/02.Broker%E6%8E%A5%E6%94%B6%E9%93%BE%E8%B7%AF/index.html">
+<meta property="og:url" content="https://falser101.github.io/2026/08/01/2026/02.Broker%E6%8E%A5%E6%94%B6%E9%93%BE%E8%B7%AF/index.html">
 <meta property="og:site_name" content="Falser&#39;s Blog">
 <meta property="og:description" content="第一课的字节流到达 broker 后，ServerCnx 如何还原 SEND 命令，BrokerService（管家）如何管理 topic，消息最终在 PersistentTopic 里通过检查与去重，进入存储层。  学习目标 认识 BrokerService：broker 端所有 topic 的”登记处”和”加载器” 掌握 producer 注册（handleProducer）与消息发布（ha">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2026-08-02T16:00:00.000Z">
-<meta property="article:modified_time" content="2026-08-03T06:29:43.107Z">
+<meta property="article:published_time" content="2026-07-31T16:00:00.000Z">
+<meta property="article:modified_time" content="2026-08-03T06:39:23.493Z">
 <meta property="article:author" content="Falser">
 <meta property="article:tag" content="pulsar">
 <meta property="article:tag" content="broker">
@@ -315,8 +315,8 @@
     
       <span class="post-meta">
         <i class="iconfont icon-date-fill" aria-hidden="true"></i>
-        <time datetime="2026-08-03 00:00" pubdate>
-          2026年8月3日 凌晨
+        <time datetime="2026-08-01 00:00" pubdate>
+          2026年8月1日 凌晨
         </time>
       </span>
     
@@ -554,7 +554,7 @@
   <div class="license-box my-3">
     <div class="license-title">
       <div>Pulsar Broker 接收链路</div>
-      <div>https://falser101.github.io/2026/08/03/2026/02.Broker接收链路/</div>
+      <div>https://falser101.github.io/2026/08/01/2026/02.Broker接收链路/</div>
     </div>
     <div class="license-meta">
       
@@ -566,7 +566,7 @@
       
         <div class="license-meta-item license-meta-date">
           <div>发布于</div>
-          <div>2026年8月3日</div>
+          <div>2026年8月1日</div>
         </div>
       
       
@@ -598,9 +598,9 @@
                   <article class="post-prev col-6">
                     
                     
-                      <a href="/2026/08/03/2026/01.%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%8F%91%E9%80%81%E9%93%BE%E8%B7%AF/" title="Pulsar 客户端发送链路">
+                      <a href="/2026/08/02/2026/03.ManagedLedger%E5%AE%9A%E4%BD%8D%E4%B8%8E%E6%95%B0%E6%8D%AE%E6%A8%A1%E5%9E%8B/" title="Pulsar Managed-Ledger ① 定位与数据模型">
                         <i class="iconfont icon-arrowleft"></i>
-                        <span class="hidden-mobile">Pulsar 客户端发送链路</span>
+                        <span class="hidden-mobile">Pulsar Managed-Ledger ① 定位与数据模型</span>
                         <span class="visible-mobile">上一篇</span>
                       </a>
                     
@@ -608,8 +608,8 @@
                   <article class="post-next col-6">
                     
                     
-                      <a href="/2025/06/25/2025/kde%E5%85%A8%E5%B1%80%E8%8F%9C%E5%8D%95/" title="kde全局菜单">
-                        <span class="hidden-mobile">kde全局菜单</span>
+                      <a href="/2026/07/31/2026/01.%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%8F%91%E9%80%81%E9%93%BE%E8%B7%AF/" title="Pulsar 客户端发送链路">
+                        <span class="hidden-mobile">Pulsar 客户端发送链路</span>
                         <span class="visible-mobile">下一篇</span>
                         <i class="iconfont icon-arrowright"></i>
                       </a>

@@ -10,7 +10,7 @@
 
     <url>
         <loc>https://falser101.github.io/categories/pulsar/</loc>
-        <lastmod>2026-08-03T06:29:45.232Z</lastmod>
+        <lastmod>2026-08-03T06:39:23.493Z</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.2</priority>
     </url>
@@ -23,7 +23,7 @@
     </url>
 
     <url>
-        <loc>https://falser101.github.io/categories/k8s/</loc>
+        <loc>https://falser101.github.io/categories/golang/</loc>
         <lastmod>2026-07-27T09:08:39.018Z</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.2</priority>
@@ -37,7 +37,7 @@
     </url>
 
     <url>
-        <loc>https://falser101.github.io/categories/golang/</loc>
+        <loc>https://falser101.github.io/categories/k8s/</loc>
         <lastmod>2026-07-27T09:08:39.018Z</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.2</priority>

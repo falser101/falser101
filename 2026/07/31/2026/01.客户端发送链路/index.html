@@ -22,12 +22,12 @@
     <meta name="description" content="主线起点。搞清你在代码里写 producer.send(&quot;hello&quot;) 之后，这一条消息在客户端内部经历了什么，直到变成网络上的字节流。  学习目标 理解 Pulsar 客户端”同步 API 是异步的薄包装”这一贯穿全栈的模式 掌握 batching（批量）、背压、有序性、sequenceId 四个机制在发送路径上的落点 看懂协议帧的二进制结构  相关代码（按阅读顺序）">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Pulsar 客户端发送链路">
-<meta property="og:url" content="https://falser101.github.io/2026/08/03/2026/01.%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%8F%91%E9%80%81%E9%93%BE%E8%B7%AF/index.html">
+<meta property="og:url" content="https://falser101.github.io/2026/07/31/2026/01.%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%8F%91%E9%80%81%E9%93%BE%E8%B7%AF/index.html">
 <meta property="og:site_name" content="Falser&#39;s Blog">
 <meta property="og:description" content="主线起点。搞清你在代码里写 producer.send(&quot;hello&quot;) 之后，这一条消息在客户端内部经历了什么，直到变成网络上的字节流。  学习目标 理解 Pulsar 客户端”同步 API 是异步的薄包装”这一贯穿全栈的模式 掌握 batching（批量）、背压、有序性、sequenceId 四个机制在发送路径上的落点 看懂协议帧的二进制结构  相关代码（按阅读顺序）">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2026-08-02T16:00:00.000Z">
-<meta property="article:modified_time" content="2026-08-03T06:29:45.232Z">
+<meta property="article:published_time" content="2026-07-30T16:00:00.000Z">
+<meta property="article:modified_time" content="2026-08-03T06:39:23.493Z">
 <meta property="article:author" content="Falser">
 <meta property="article:tag" content="pulsar">
 <meta property="article:tag" content="client">
@@ -316,8 +316,8 @@
     
       <span class="post-meta">
         <i class="iconfont icon-date-fill" aria-hidden="true"></i>
-        <time datetime="2026-08-03 00:00" pubdate>
-          2026年8月3日 凌晨
+        <time datetime="2026-07-31 00:00" pubdate>
+          2026年7月31日 凌晨
         </time>
       </span>
     
@@ -540,7 +540,7 @@
   <div class="license-box my-3">
     <div class="license-title">
       <div>Pulsar 客户端发送链路</div>
-      <div>https://falser101.github.io/2026/08/03/2026/01.客户端发送链路/</div>
+      <div>https://falser101.github.io/2026/07/31/2026/01.客户端发送链路/</div>
     </div>
     <div class="license-meta">
       
@@ -552,7 +552,7 @@
       
         <div class="license-meta-item license-meta-date">
           <div>发布于</div>
-          <div>2026年8月3日</div>
+          <div>2026年7月31日</div>
         </div>
       
       
@@ -584,9 +584,9 @@
                   <article class="post-prev col-6">
                     
                     
-                      <a href="/2026/08/03/2026/04.ManagedLedger%E5%86%99%E5%85%A5%E8%B7%AF%E5%BE%84/" title="Pulsar Managed-Ledger ② 写入路径">
+                      <a href="/2026/08/01/2026/02.Broker%E6%8E%A5%E6%94%B6%E9%93%BE%E8%B7%AF/" title="Pulsar Broker 接收链路">
                         <i class="iconfont icon-arrowleft"></i>
-                        <span class="hidden-mobile">Pulsar Managed-Ledger ② 写入路径</span>
+                        <span class="hidden-mobile">Pulsar Broker 接收链路</span>
                         <span class="visible-mobile">上一篇</span>
                       </a>
                     
@@ -594,8 +594,8 @@
                   <article class="post-next col-6">
                     
                     
-                      <a href="/2026/08/03/2026/02.Broker%E6%8E%A5%E6%94%B6%E9%93%BE%E8%B7%AF/" title="Pulsar Broker 接收链路">
-                        <span class="hidden-mobile">Pulsar Broker 接收链路</span>
+                      <a href="/2025/06/25/2025/kde%E5%85%A8%E5%B1%80%E8%8F%9C%E5%8D%95/" title="kde全局菜单">
+                        <span class="hidden-mobile">kde全局菜单</span>
                         <span class="visible-mobile">下一篇</span>
                         <i class="iconfont icon-arrowright"></i>
                       </a>
