@@ -1,0 +1,926 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="falser101">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="基于Operatorframework sdk进行Operator的开发  使用OperatorSdk开发环境要求 安装Operator SDK CLI git go，环境变量（export GO111MODULE&#x3D;on） docker kubectl  开始创建并初始化项目123mkdir memcached-operatorcd memcached-operatoroperator">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Operator开发">
+<meta property="og:url" content="https://falser101.github.io/2023/10/07/2024/Operator%E5%BC%80%E5%8F%91/index.html">
+<meta property="og:site_name" content="Falser&#39;s Blog">
+<meta property="og:description" content="基于Operatorframework sdk进行Operator的开发  使用OperatorSdk开发环境要求 安装Operator SDK CLI git go，环境变量（export GO111MODULE&#x3D;on） docker kubectl  开始创建并初始化项目123mkdir memcached-operatorcd memcached-operatoroperator">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2023-10-06T16:00:00.000Z">
+<meta property="article:modified_time" content="2026-07-27T09:08:39.018Z">
+<meta property="article:author" content="Falser">
+<meta property="article:tag" content="linux">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>Operator开发 - Falser&#39;s Blog</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"falser101.github.io","root":"/","version":"1.9.9","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"expand_all":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"openkounter":{"server_url":"https://open-kounter.mintimate.cn","path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Falser&#39;s Blog</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content (desktop) -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- Mobile grid menu overlay -->
+<div id="mobile-grid-menu" class="d-lg-none">
+  <div class="mobile-grid-menu-inner">
+    <div class="container">
+      <div class="row">
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-home-fill"></i>
+                  <span>首页</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/archives/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-archive-fill"></i>
+                  <span>归档</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/categories/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-category-fill"></i>
+                  <span>分类</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/tags/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-tags-fill"></i>
+                  <span>标签</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/about/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-user-fill"></i>
+                  <span>关于</span>
+                </div>
+              </a>
+            </div>
+          
+        
+        
+          <div class="col-4 mobile-grid-cell" id="mobile-search-btn">
+            <a href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <div class="mobile-grid-item">
+                <i class="iconfont icon-search"></i>
+                <span>搜索</span>
+              </div>
+            </a>
+          </div>
+        
+        
+          <div class="col-4 mobile-grid-cell" id="mobile-color-toggle-btn"
+               data-label-light="开灯"
+               data-label-dark="关灯">
+            <a href="javascript:;" aria-label="Color Toggle">
+              <div class="mobile-grid-item">
+                <i class="iconfont icon-dark" id="mobile-color-toggle-icon"></i>
+                <span id="mobile-color-toggle-label">关灯</span>
+              </div>
+            </a>
+          </div>
+        
+      </div>
+    </div>
+  </div>
+</div>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="Operator开发"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2023-10-07 00:00" pubdate>
+          2023年10月7日 凌晨
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          4.1k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          35 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">Operator开发</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>基于Operatorframework sdk进行Operator的开发</p>
+</blockquote>
+<h2 id="使用OperatorSdk开发"><a href="#使用OperatorSdk开发" class="headerlink" title="使用OperatorSdk开发"></a>使用OperatorSdk开发</h2><h3 id="环境要求"><a href="#环境要求" class="headerlink" title="环境要求"></a>环境要求</h3><ul>
+<li><a target="_blank" rel="noopener" href="https://sdk.operatorframework.io/docs/installation/">安装Operator SDK CLI</a></li>
+<li>git</li>
+<li>go，环境变量（export GO111MODULE&#x3D;on）</li>
+<li>docker</li>
+<li>kubectl</li>
+</ul>
+<h3 id="开始"><a href="#开始" class="headerlink" title="开始"></a>开始</h3><h4 id="创建并初始化项目"><a href="#创建并初始化项目" class="headerlink" title="创建并初始化项目"></a>创建并初始化项目</h4><figure class="highlight swift"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs swift">mkdir memcached<span class="hljs-operator">-</span><span class="hljs-keyword">operator</span><br>cd memcached<span class="hljs-operator">-</span><span class="hljs-keyword">operator</span><br><span class="hljs-keyword">operator</span><span class="hljs-operator">-</span>sdk <span class="hljs-keyword">init</span> <span class="hljs-operator">--</span>domain example.com <span class="hljs-operator">--</span>repo github.com<span class="hljs-regexp">/example/</span>memcached<span class="hljs-operator">-</span><span class="hljs-keyword">operator</span><br></code></pre></td></tr></table></figure>
+
+<h4 id="创建新的-API-和控制器"><a href="#创建新的-API-和控制器" class="headerlink" title="创建新的 API 和控制器"></a>创建新的 API 和控制器</h4><p>创建一个新的自定义资源定义 （CRD） API，其中包含组 cache 版本 v1alpha1 和内存缓存类型。出现提示时，输入yes以创建资源和控制器。</p>
+<figure class="highlight jboss-cli"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs jboss-cli">$ operator-sdk create api <span class="hljs-params">--group</span> cache <span class="hljs-params">--version</span> v1alpha1 <span class="hljs-params">--kind</span> Memcached <span class="hljs-params">--resource</span> <span class="hljs-params">--controller</span><br>Writing scaffold for you to edit.<span class="hljs-string">..</span><br>api/v1alpha1/memcached_types.go<br>controllers/memcached_controller.go<br><span class="hljs-string">...</span><br></code></pre></td></tr></table></figure>
+
+<h4 id="定义API"><a href="#定义API" class="headerlink" title="定义API"></a>定义API</h4><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><code class="hljs golang"><span class="hljs-comment">// 添加 +kubebuilder:subresource:status 标记以将状态子资源添加到 CRD 清单，以便控制器可以在不更改 CR 对象的其余部分的情况下更新 CR 状态</span><br><span class="hljs-comment">//+kubebuilder:subresource:status</span><br><span class="hljs-keyword">type</span> MemcachedSpec <span class="hljs-keyword">struct</span> &#123;<br><br>  <span class="hljs-comment">// 校验 可查阅https://book.kubebuilder.io/reference/markers/crd-validation.html</span><br>	<span class="hljs-comment">// +kubebuilder:validation:Minimum=1</span><br>	<span class="hljs-comment">// +kubebuilder:validation:Maximum=5</span><br>	<span class="hljs-comment">// +kubebuilder:validation:ExclusiveMaximum=false</span><br><br>	<span class="hljs-comment">// 实例数</span><br>	<span class="hljs-comment">// +operator-sdk:csv:customresourcedefinitions:type=spec</span><br>	Size <span class="hljs-type">int32</span> <span class="hljs-string">`json:&quot;size,omitempty&quot;`</span><br><br>	<span class="hljs-comment">// 容器的端口</span><br>	<span class="hljs-comment">// +operator-sdk:csv:customresourcedefinitions:type=spec</span><br>	ContainerPort <span class="hljs-type">int32</span> <span class="hljs-string">`json:&quot;containerPort,omitempty&quot;`</span><br>&#125;<br><br><span class="hljs-comment">// Memcached的状态</span><br><span class="hljs-keyword">type</span> MemcachedStatus <span class="hljs-keyword">struct</span> &#123;<br>  <span class="hljs-comment">// 存储Memcached实例的状态条件</span><br>	<span class="hljs-comment">// +operator-sdk:csv:customresourcedefinitions:type=status</span><br>	Conditions []metav1.Condition <span class="hljs-string">`json:&quot;conditions,omitempty&quot; patchStrategy:&quot;merge&quot; patchMergeKey:&quot;type&quot; protobuf:&quot;bytes,1,rep,name=conditions&quot;`</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>定义完成后，请运行以下命令以更新为该资源类型生成的代码</p>
+<figure class="highlight verilog"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs verilog">make <span class="hljs-keyword">generate</span><br></code></pre></td></tr></table></figure>
+<p>上面的 makefile 目标将调用<code>controller-gen</code>来更新 <code>api/v1alpha1/zz_generated.deepcopy.go</code> 文件，以确保我们的 API 的 Go 类型定义实现所有 Kind 类型必须实现的 runtime.Object 接口。</p>
+<h4 id="生成-CRD-清单"><a href="#生成-CRD-清单" class="headerlink" title="生成 CRD 清单"></a>生成 CRD 清单</h4><p>使用规范&#x2F;状态字段和 CRD 验证标记定义 API 后，可以使用以下命令生成和更新 CRD 清单</p>
+<figure class="highlight ebnf"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs ebnf"><span class="hljs-attribute">make manifests</span><br></code></pre></td></tr></table></figure>
+<p>此makefile目标将调用<code>controller-gen</code>以生成<code>config/crd/bases/cache.example.com_memcacheds.yaml</code> CRD 清单。</p>
+<h3 id="实现Controller"><a href="#实现Controller" class="headerlink" title="实现Controller"></a>实现Controller</h3><h4 id="协调循环"><a href="#协调循环" class="headerlink" title="协调循环"></a>协调循环</h4><p>协调功能负责对系统的实际状态强制实施所需的 CR 状态。每当在监视的 CR 或资源上发生事件时，它都会运行，并且会根据这些状态是否匹配返回一些值</p>
+<p>每个控制器都有一个协调器对象，其中包含一个 <code>Reconcile()</code> 实现协调循环的方法。协调循环传递参数， <code>Request</code> 该参数是用于从缓存中查找主要资源对象 <code>Memcached</code> 的命名空间&#x2F;名称键</p>
+<figure class="highlight smali"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs smali">import (<br>	ctrl <span class="hljs-string">&quot;sigs.k8s.io/controller-runtime&quot;</span><br><br>	cachev1alpha1 <span class="hljs-string">&quot;github.com/example/memcached-operator/api/v1alpha1&quot;</span><br>	...<br>)<br><br>func (r *MemcachedReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) &#123;<br>  // Lookup the Memcached<span class="hljs-built_in"> instance </span>for this reconcile request<br>  memcached<span class="hljs-keyword"> :</span>= &amp;cachev1alpha1.Memcached&#123;&#125;<br>  err<span class="hljs-keyword"> :</span>= r.Get(ctx, req.NamespacedName, memcached)<br><span class="hljs-keyword">  .</span>..<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>以下是协调程序的一些可能的返回选项：</p>
+<ul>
+<li><p>With the error:</p>
+<figure class="highlight hsp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs hsp"><span class="hljs-keyword">return</span> ctrl.Result&#123;&#125;, <span class="hljs-keyword">err</span><br></code></pre></td></tr></table></figure>
+</li>
+<li><p>Without an error:</p>
+<figure class="highlight ada"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs ada"><span class="hljs-keyword">return</span> ctrl.Result&#123;<span class="hljs-keyword">Requeue</span>: <span class="hljs-literal">true</span>&#125;, nil<br></code></pre></td></tr></table></figure>
+</li>
+<li><p>Therefore, to stop the Reconcile, use:</p>
+<figure class="highlight crystal"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs crystal"><span class="hljs-keyword">return</span> ctrl.Result&#123;&#125;, <span class="hljs-literal">nil</span><br></code></pre></td></tr></table></figure>
+</li>
+<li><p>Reconcile again after X time:</p>
+<figure class="highlight arcade"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs arcade"><span class="hljs-keyword">return</span> ctrl.Result&#123;<span class="hljs-attr">RequeueAfter</span>: <span class="hljs-number">5</span> * <span class="hljs-built_in">time</span>.<span class="hljs-built_in">Minute</span>&#125;, nil<br></code></pre></td></tr></table></figure></li>
+</ul>
+<h4 id="指定权限并生成-RBAC-清单"><a href="#指定权限并生成-RBAC-清单" class="headerlink" title="指定权限并生成 RBAC 清单"></a>指定权限并生成 RBAC 清单</h4><p>控制器需要某些 RBAC 权限才能与其管理的资源进行交互。这些标记通过如下所示的 RBAC 标记指定：</p>
+<figure class="highlight maxima"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs maxima">//+kubebuilder:rbac:groups=cache.<span class="hljs-built_in">example</span>.com,resources=memcacheds,verbs=<span class="hljs-built_in">get</span>;list;watch;create;update;patch;<span class="hljs-built_in">delete</span><br>//+kubebuilder:rbac:groups=cache.<span class="hljs-built_in">example</span>.com,resources=memcacheds/<span class="hljs-built_in">status</span>,verbs=<span class="hljs-built_in">get</span>;update;patch<br>//+kubebuilder:rbac:groups=cache.<span class="hljs-built_in">example</span>.com,resources=memcacheds/finalizers,verbs=update<br>//+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch<br>//+kubebuilder:rbac:groups=apps,resources=deployments,verbs=<span class="hljs-built_in">get</span>;list;watch;create;update;patch;<span class="hljs-built_in">delete</span><br>//+kubebuilder:rbac:groups=core,resources=pods,verbs=<span class="hljs-built_in">get</span>;list;watch<br><br>func (r *MemcachedReconciler) Reconcile(ctx <span class="hljs-built_in">context</span>.Context, req ctrl.Request) (ctrl.Result, <span class="hljs-built_in">error</span>) &#123;<br>  ...<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>ClusterRole 清单 at config&#x2F;rbac&#x2F;role.yaml 是使用以下命令通过控制器生成从上述标记生成的：</p>
+<figure class="highlight ebnf"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs ebnf"><span class="hljs-attribute">make manifests</span><br></code></pre></td></tr></table></figure>
+
+<h4 id="构建镜像"><a href="#构建镜像" class="headerlink" title="构建镜像"></a>构建镜像</h4><p>可修改Makefil 的镜像名称</p>
+<figure class="highlight ruby"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs ruby"><span class="hljs-comment">## IMG ?= controller:latest</span><br><span class="hljs-variable constant_">IMG</span> <span class="hljs-string">?=</span> <span class="hljs-variable">$(</span><span class="hljs-variable constant_">IMAGE_TAG_BASE</span>)<span class="hljs-symbol">:</span><span class="hljs-variable">$(</span><span class="hljs-variable constant_">VERSION</span>)<br></code></pre></td></tr></table></figure>
+
+<p>修改后执行以下命令</p>
+<figure class="highlight gauss"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs gauss"><span class="hljs-built_in">make</span> docker-build docker-<span class="hljs-keyword">push</span><br></code></pre></td></tr></table></figure>
+
+<h3 id="运行operator"><a href="#运行operator" class="headerlink" title="运行operator"></a>运行operator</h3><h4 id="本地在集群外部执行"><a href="#本地在集群外部执行" class="headerlink" title="本地在集群外部执行"></a>本地在集群外部执行</h4><figure class="highlight gauss"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs gauss"><span class="hljs-built_in">make</span> install <span class="hljs-keyword">run</span><br></code></pre></td></tr></table></figure>
+
+<h4 id="在群集内作为Deployment运行"><a href="#在群集内作为Deployment运行" class="headerlink" title="在群集内作为Deployment运行"></a>在群集内作为Deployment运行</h4><figure class="highlight ebnf"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs ebnf"><span class="hljs-attribute">make deploy</span><br></code></pre></td></tr></table></figure>
+
+<p>验证 memcached-operator是否已启动并正在运行</p>
+<figure class="highlight pgsql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs pgsql">$ kubectl <span class="hljs-keyword">get</span> deployment -n memcached-<span class="hljs-keyword">operator</span>-<span class="hljs-keyword">system</span><br><span class="hljs-type">NAME</span>                                    READY   UP-<span class="hljs-keyword">TO</span>-<span class="hljs-type">DATE</span>   AVAILABLE   AGE<br>memcached-<span class="hljs-keyword">operator</span>-controller-manager   <span class="hljs-number">1</span>/<span class="hljs-number">1</span>     <span class="hljs-number">1</span>            <span class="hljs-number">1</span>           <span class="hljs-number">8</span>m<br></code></pre></td></tr></table></figure>
+
+<h3 id="创建Memcached-CR资源"><a href="#创建Memcached-CR资源" class="headerlink" title="创建Memcached CR资源"></a>创建Memcached CR资源</h3><p>更新 config&#x2F;samples&#x2F;cache_v1alpha1_memcached.yaml，并定义 spec 如下：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-attr">apiVersion:</span> <span class="hljs-string">cache.example.com/v1alpha1</span><br><span class="hljs-attr">kind:</span> <span class="hljs-string">Memcached</span><br><span class="hljs-attr">metadata:</span><br>  <span class="hljs-attr">name:</span> <span class="hljs-string">memcached-sample</span><br><span class="hljs-attr">spec:</span><br>  <span class="hljs-attr">size:</span> <span class="hljs-number">3</span><br>  <span class="hljs-attr">containerPort:</span> <span class="hljs-number">11211</span><br></code></pre></td></tr></table></figure>
+
+<p>创建CR:</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs shell">kubectl apply -f config/samples/cache_v1alpha1_memcached.yaml<br></code></pre></td></tr></table></figure>
+
+<h3 id="清除"><a href="#清除" class="headerlink" title="清除"></a>清除</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs shell">kubectl delete -f config/samples/cache_v1alpha1_memcached.yaml<br>make undeploy<br></code></pre></td></tr></table></figure>
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/k8s/" class="category-chain-item">k8s</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/linux/" class="print-no-link">#linux</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>Operator开发</div>
+      <div>https://falser101.github.io/2023/10/07/2024/Operator开发/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>falser101</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2023年10月7日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2023/10/07/2023/go1.21%E6%96%B0%E5%A2%9E%E6%97%A5%E5%BF%97%E5%BA%93slog%E8%AF%A6%E8%A7%A3/" title="go1.21新增日志库slog详解">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">go1.21新增日志库slog详解</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2023/07/12/2023/nginx%20%E9%85%8D%E7%BD%AEhttps%E8%AE%BF%E9%97%AE%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8/" title="nginx 配置https访问云服务器">
+                        <span class="hidden-mobile">nginx 配置https访问云服务器</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+    <div id="giscus" class="giscus"></div>
+    <script type="text/javascript">
+      Fluid.utils.loadComments('#giscus', function() {
+        var options = {"repo":"falser101/falser101.github.io","repo-id":"R_kgDOMveGqw","category":"Announcements","category-id":"DIC_kwDOMveGq84ClgWQ","theme-light":"light","theme-dark":"dark","mapping":"pathname","reactions-enabled":1,"emit-metadata":0,"input-position":"top","lang":"zh-CN"};
+        var attributes = {};
+        for (let option in options) {
+          if (!option.startsWith('theme-')) {
+            var key = option.startsWith('data-') ? option : 'data-' + option;
+            attributes[key] = options[option];
+          }
+        }
+        var light = 'light';
+        var dark = 'dark';
+        window.GiscusThemeLight = light;
+        window.GiscusThemeDark = dark;
+        attributes['data-theme'] = document.documentElement.getAttribute('data-user-color-scheme') === 'dark' ? dark : light;
+        for (let attribute in attributes) {
+          var value = attributes[attribute];
+          if (value === undefined || value === null || value === '') {
+            delete attributes[attribute];
+          }
+        }
+        var s = document.createElement('script');
+        s.setAttribute('src', 'https://giscus.app/client.js');
+        s.setAttribute('crossorigin', 'anonymous');
+        for (let attribute in attributes) {
+          s.setAttribute(attribute, attributes[attribute]);
+        }
+        var ss = document.getElementsByTagName('script');
+        var e = ss.length > 0 ? ss[ss.length - 1] : document.head || document.documentElement;
+        e.parentNode.insertBefore(s, e.nextSibling);
+      });
+    </script>
+    <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    function isExpandAllEnabled() {
+      return CONFIG.toc && CONFIG.toc.expand_all === true;
+    }
+    function expandAllToc() {
+      if (!isExpandAllEnabled()) { return; }
+      jQuery('#toc-body .tocbot-is-collapsed').removeClass('tocbot-is-collapsed');
+    }
+    function updateTocToggle($li, $childList) {
+      var $toggle = $li.children('.toc-toggle');
+      if ($toggle.length === 0) { return; }
+      var collapsed = $childList.hasClass('tocbot-is-collapsed');
+      $toggle
+        .toggleClass('toc-toggle-collapsed', collapsed)
+        .toggleClass('toc-toggle-expanded', !collapsed);
+    }
+    function bindTocToggle() {
+      if (!isExpandAllEnabled()) { return; }
+      jQuery('#toc-body .toc-list-item').each(function() {
+        var $li = jQuery(this);
+        var $childList = $li.children('ol');
+        if ($childList.length === 0) {
+          if ($li.children('.toc-toggle').length === 0) {
+            $li.prepend('<span class="toc-toggle toc-toggle-placeholder" aria-hidden="true">›</span>');
+          }
+          return;
+        }
+
+        if ($li.children('.toc-toggle').length === 0) {
+          $li.prepend('<span class="toc-toggle toc-toggle-expanded" aria-hidden="true">›</span>');
+        }
+        updateTocToggle($li, $childList);
+      });
+      jQuery('#toc-body').off('click.tocToggle').on('click.tocToggle', '.toc-toggle', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var $li = jQuery(this).parent('.toc-list-item');
+        var $childList = $li.children('ol');
+        if ($childList.length === 0) { return; }
+        $childList.toggleClass('tocbot-is-collapsed');
+        updateTocToggle($li, $childList);
+      });
+      if (!window.__tocToggleObserver) {
+        window.__tocToggleObserver = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.type !== 'attributes' || mutation.attributeName !== 'class') { return; }
+            var $list = jQuery(mutation.target);
+            var $li = $list.parent('.toc-list-item');
+            if ($li.length === 0) { return; }
+            updateTocToggle($li, $list);
+          });
+        });
+        jQuery('#toc-body ol').each(function() {
+          window.__tocToggleObserver.observe(this, { attributes: true });
+        });
+      }
+    }
+    var tocConfig = Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc);
+    if (isExpandAllEnabled()) {
+      tocConfig.collapseDepth = 6;
+    }
+    window.tocbot.init(tocConfig);
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+    expandAllToc();
+    bindTocToggle();
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+        expandAllToc();
+        bindTocToggle();
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

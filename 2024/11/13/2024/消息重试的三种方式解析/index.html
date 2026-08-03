@@ -1,0 +1,928 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="falser101">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="要利用消息重新交付，您需要在Broke重新发送Apache Pulsar客户端中未确认的消息之前启用此机制。 可以使用三种方法激活Apache Pulsar中的消息重新传递机制。   Negative Acknowledgment -&gt; 否定确认 Acknowledgment Timeout -&gt; 确认超时 Retry letter topic -&gt; 重试消费  主动重试重试信主">
+<meta property="og:type" content="article">
+<meta property="og:title" content="消息重试的三种方式解析">
+<meta property="og:url" content="https://falser101.github.io/2024/11/13/2024/%E6%B6%88%E6%81%AF%E9%87%8D%E8%AF%95%E7%9A%84%E4%B8%89%E7%A7%8D%E6%96%B9%E5%BC%8F%E8%A7%A3%E6%9E%90/index.html">
+<meta property="og:site_name" content="Falser&#39;s Blog">
+<meta property="og:description" content="要利用消息重新交付，您需要在Broke重新发送Apache Pulsar客户端中未确认的消息之前启用此机制。 可以使用三种方法激活Apache Pulsar中的消息重新传递机制。   Negative Acknowledgment -&gt; 否定确认 Acknowledgment Timeout -&gt; 确认超时 Retry letter topic -&gt; 重试消费  主动重试重试信主">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://falser101.github.io/images/pulsar/message-redelivery/%E4%B8%BB%E5%8A%A8%E9%87%8D%E8%AF%95.svg">
+<meta property="article:published_time" content="2024-11-13T02:14:10.000Z">
+<meta property="article:modified_time" content="2026-07-27T09:08:39.018Z">
+<meta property="article:author" content="Falser">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://falser101.github.io/images/pulsar/message-redelivery/%E4%B8%BB%E5%8A%A8%E9%87%8D%E8%AF%95.svg">
+  
+  
+  
+  <title>消息重试的三种方式解析 - Falser&#39;s Blog</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"falser101.github.io","root":"/","version":"1.9.9","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"expand_all":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"openkounter":{"server_url":"https://open-kounter.mintimate.cn","path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Falser&#39;s Blog</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content (desktop) -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- Mobile grid menu overlay -->
+<div id="mobile-grid-menu" class="d-lg-none">
+  <div class="mobile-grid-menu-inner">
+    <div class="container">
+      <div class="row">
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-home-fill"></i>
+                  <span>首页</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/archives/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-archive-fill"></i>
+                  <span>归档</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/categories/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-category-fill"></i>
+                  <span>分类</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/tags/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-tags-fill"></i>
+                  <span>标签</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/about/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-user-fill"></i>
+                  <span>关于</span>
+                </div>
+              </a>
+            </div>
+          
+        
+        
+          <div class="col-4 mobile-grid-cell" id="mobile-search-btn">
+            <a href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <div class="mobile-grid-item">
+                <i class="iconfont icon-search"></i>
+                <span>搜索</span>
+              </div>
+            </a>
+          </div>
+        
+        
+          <div class="col-4 mobile-grid-cell" id="mobile-color-toggle-btn"
+               data-label-light="开灯"
+               data-label-dark="关灯">
+            <a href="javascript:;" aria-label="Color Toggle">
+              <div class="mobile-grid-item">
+                <i class="iconfont icon-dark" id="mobile-color-toggle-icon"></i>
+                <span id="mobile-color-toggle-label">关灯</span>
+              </div>
+            </a>
+          </div>
+        
+      </div>
+    </div>
+  </div>
+</div>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="消息重试的三种方式解析"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2024-11-13 10:14" pubdate>
+          2024年11月13日 上午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          23k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          194 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">消息重试的三种方式解析</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <pre><code class="hljs">要利用消息重新交付，您需要在Broke重新发送Apache Pulsar客户端中未确认的消息之前启用此机制。
+可以使用三种方法激活Apache Pulsar中的消息重新传递机制。
+</code></pre>
+<ul>
+<li>Negative Acknowledgment -&gt; 否定确认</li>
+<li>Acknowledgment Timeout -&gt; 确认超时</li>
+<li>Retry letter topic -&gt; 重试消费</li>
+</ul>
+<h2 id="主动重试"><a href="#主动重试" class="headerlink" title="主动重试"></a>主动重试</h2><pre><code class="hljs">重试信主题允许您存储未能使用的消息，并在以后重试使用它们。使用此方法，可以自定义重新传递消息的间隔。
+原始主题的消费者也会自动订阅重试信主题。一旦达到最大重试次数，未使用的消息将被移动到死信主题进行手动处理。
+重试信主题的功能由使用者实现。
+</code></pre>
+<p><img src="/images/pulsar/message-redelivery/%E4%B8%BB%E5%8A%A8%E9%87%8D%E8%AF%95.svg" srcset="/img/loading.gif" lazyload alt="pulsar-broker-startup"></p>
+<h3 id="使用方式"><a href="#使用方式" class="headerlink" title="使用方式"></a>使用方式</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-type">PulsarClient</span> <span class="hljs-variable">pulsarClient</span> <span class="hljs-operator">=</span> PulsarClient.builder().serviceUrl(<span class="hljs-string">&quot;pulsar://localhost:6650&quot;</span>).build();<br><br>Consumer&lt;<span class="hljs-type">byte</span>[]&gt; consumer = pulsarClient.newConsumer() <span class="hljs-comment">//</span><br>        .topic(<span class="hljs-string">&quot;persistent://my-tenant/my-ns/my-topic&quot;</span>) <span class="hljs-comment">//</span><br>        .enableRetry(<span class="hljs-literal">true</span>)<br>        .subscriptionName(<span class="hljs-string">&quot;my-subscription-name&quot;</span>).subscribe();<br><br>Message&lt;<span class="hljs-type">byte</span>[]&gt; msg = <span class="hljs-literal">null</span>;<br><br><span class="hljs-keyword">for</span> (<span class="hljs-type">int</span> <span class="hljs-variable">i</span> <span class="hljs-operator">=</span> <span class="hljs-number">0</span>; i &lt; <span class="hljs-number">100</span>; i++) &#123;<br>    msg = consumer.receive();<br>&#125;<br><br><span class="hljs-comment">// Acknowledge the consumption of all messages at once</span><br><span class="hljs-keyword">try</span> &#123;<br>    consumer.acknowledgeCumulative(msg);<br>&#125; <span class="hljs-keyword">catch</span> (Exception e) &#123;<br>    consumer.reconsumeLater(msg, <span class="hljs-number">10</span>, TimeUnit.SECONDS);<br>&#125;<br><br>pulsarClient.close();<br></code></pre></td></tr></table></figure>
+
+<h3 id="具体实现"><a href="#具体实现" class="headerlink" title="具体实现"></a>具体实现</h3><p><code>Consumer</code>接口</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">void</span> <span class="hljs-title function_">reconsumeLater</span><span class="hljs-params">(Message&lt;?&gt; message, <span class="hljs-type">long</span> delayTime, TimeUnit unit)</span> <span class="hljs-keyword">throws</span> PulsarClientException;<br></code></pre></td></tr></table></figure>
+
+<p>抽象类<code>ConsumerBase</code> 实现<code>reconsumeLater</code>接口</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-meta">@Override</span><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">reconsumeLater</span><span class="hljs-params">(Message&lt;?&gt; message, <span class="hljs-type">long</span> delayTime, TimeUnit unit)</span> <span class="hljs-keyword">throws</span> PulsarClientException &#123;<br>    reconsumeLater(message, <span class="hljs-literal">null</span>, delayTime, unit);<br>&#125;<br><br><span class="hljs-meta">@Override</span><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">reconsumeLater</span><span class="hljs-params">(Message&lt;?&gt; message, Map&lt;String, String&gt; customProperties, <span class="hljs-type">long</span> delayTime, TimeUnit unit)</span><br>        <span class="hljs-keyword">throws</span> PulsarClientException &#123;<br>    <span class="hljs-keyword">if</span> (!conf.isRetryEnable()) &#123;<br>        <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">PulsarClientException</span>(RECONSUME_LATER_ERROR_MSG);<br>    &#125;<br>    <span class="hljs-keyword">try</span> &#123;<br>        reconsumeLaterAsync(message, customProperties, delayTime, unit).get();<br>    &#125; <span class="hljs-keyword">catch</span> (InterruptedException e) &#123;<br>        Thread.currentThread().interrupt();<br>        <span class="hljs-keyword">throw</span> PulsarClientException.unwrap(e);<br>    &#125; <span class="hljs-keyword">catch</span> (ExecutionException e) &#123;<br>        <span class="hljs-keyword">throw</span> PulsarClientException.unwrap(e);<br>    &#125;<br>&#125;<br><br><span class="hljs-meta">@Override</span><br><span class="hljs-keyword">public</span> CompletableFuture&lt;Void&gt; <span class="hljs-title function_">reconsumeLaterAsync</span><span class="hljs-params">(</span><br><span class="hljs-params">        Message&lt;?&gt; message, Map&lt;String, String&gt; customProperties, <span class="hljs-type">long</span> delayTime, TimeUnit unit)</span> &#123;<br>    <span class="hljs-keyword">if</span> (!conf.isRetryEnable()) &#123;<br>        <span class="hljs-keyword">return</span> FutureUtil.failedFuture(<span class="hljs-keyword">new</span> <span class="hljs-title class_">PulsarClientException</span>(RECONSUME_LATER_ERROR_MSG));<br>    &#125;<br>    <span class="hljs-keyword">try</span> &#123;<br>        validateMessageId(message);<br>    &#125; <span class="hljs-keyword">catch</span> (PulsarClientException e) &#123;<br>        <span class="hljs-keyword">return</span> FutureUtil.failedFuture(e);<br>    &#125;<br>    <span class="hljs-keyword">return</span> doReconsumeLater(message, AckType.Individual, customProperties, delayTime, unit);<br>&#125;<br><br><span class="hljs-keyword">protected</span> <span class="hljs-keyword">abstract</span> CompletableFuture&lt;Void&gt; <span class="hljs-title function_">doReconsumeLater</span><span class="hljs-params">(Message&lt;?&gt; message, AckType ackType,</span><br><span class="hljs-params">                                                            Map&lt;String, String&gt; customProperties,</span><br><span class="hljs-params">                                                            <span class="hljs-type">long</span> delayTime,</span><br><span class="hljs-params">                                                            TimeUnit unit)</span>;<br></code></pre></td></tr></table></figure>
+
+<p>单分区<code>ConsumerImpl</code> 实现<code>doReconsumeLater</code>抽象方法</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">protected</span> CompletableFuture&lt;Void&gt; <span class="hljs-title function_">doReconsumeLater</span><span class="hljs-params">(Message&lt;?&gt; message, AckType ackType,</span><br><span class="hljs-params">                                                   Map&lt;String, String&gt; customProperties,</span><br><span class="hljs-params">                                                   <span class="hljs-type">long</span> delayTime,</span><br><span class="hljs-params">                                                   TimeUnit unit)</span> &#123;<br>    <span class="hljs-type">MessageId</span> <span class="hljs-variable">messageId</span> <span class="hljs-operator">=</span> message.getMessageId();<br>    <span class="hljs-keyword">if</span> (messageId == <span class="hljs-literal">null</span>) &#123;<br>        <span class="hljs-keyword">return</span> FutureUtil.failedFuture(<span class="hljs-keyword">new</span> <span class="hljs-title class_">PulsarClientException</span><br>                .InvalidMessageException(<span class="hljs-string">&quot;Cannot handle message with null messageId&quot;</span>));<br>    &#125;<br>    <br>    <span class="hljs-comment">// 检查消费者的状态</span><br>    <span class="hljs-keyword">if</span> (getState() != State.Ready &amp;&amp; getState() != State.Connecting) &#123;<br>        stats.incrementNumAcksFailed();<br>        <span class="hljs-type">PulsarClientException</span> <span class="hljs-variable">exception</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">PulsarClientException</span>(<span class="hljs-string">&quot;Consumer not ready. State: &quot;</span> + getState());<br>        <span class="hljs-keyword">if</span> (AckType.Individual.equals(ackType)) &#123;<br>            onAcknowledge(messageId, exception);<br>        &#125; <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (AckType.Cumulative.equals(ackType)) &#123;<br>            onAcknowledgeCumulative(messageId, exception);<br>        &#125;<br>        <span class="hljs-keyword">return</span> FutureUtil.failedFuture(exception);<br>    &#125;<br>    <span class="hljs-keyword">if</span> (delayTime &lt; <span class="hljs-number">0</span>) &#123;<br>        delayTime = <span class="hljs-number">0</span>;<br>    &#125;<br>    <span class="hljs-keyword">if</span> (retryLetterProducer == <span class="hljs-literal">null</span>) &#123;<br>        <br>        createProducerLock.writeLock().lock();<br>        <span class="hljs-keyword">try</span> &#123;<br>            <span class="hljs-comment">// 如果重试生产者为空 创建重试消息生产者</span><br>            <span class="hljs-keyword">if</span> (retryLetterProducer == <span class="hljs-literal">null</span>) &#123;<br>                retryLetterProducer = client.newProducer(Schema.AUTO_PRODUCE_BYTES(schema))<br>                        .topic(<span class="hljs-built_in">this</span>.deadLetterPolicy.getRetryLetterTopic())<br>                        .enableBatching(<span class="hljs-literal">false</span>)<br>                        .enableChunking(<span class="hljs-literal">true</span>)<br>                        .blockIfQueueFull(<span class="hljs-literal">false</span>)<br>                        .create();<br>                stats.setRetryLetterProducerStats(retryLetterProducer.getStats());<br>            &#125;<br>        &#125; <span class="hljs-keyword">catch</span> (Exception e) &#123;<br>            log.error(<span class="hljs-string">&quot;Create retry letter producer exception with topic: &#123;&#125;&quot;</span>,<br>                    deadLetterPolicy.getRetryLetterTopic(), e);<br>            <span class="hljs-keyword">return</span> FutureUtil.failedFuture(e);<br>        &#125; <span class="hljs-keyword">finally</span> &#123;<br>            createProducerLock.writeLock().unlock();<br>        &#125;<br>    &#125;<br>    CompletableFuture&lt;Void&gt; result = <span class="hljs-keyword">new</span> <span class="hljs-title class_">CompletableFuture</span>&lt;&gt;();<br>    <span class="hljs-keyword">if</span> (retryLetterProducer != <span class="hljs-literal">null</span>) &#123;<br>        <span class="hljs-keyword">try</span> &#123;<br>            <span class="hljs-comment">// 构建重试消息</span><br>            MessageImpl&lt;T&gt; retryMessage = (MessageImpl&lt;T&gt;) getMessageImpl(message);<br>            <span class="hljs-comment">// 提取消息的原始 messageId</span><br>            <span class="hljs-type">String</span> <span class="hljs-variable">originMessageIdStr</span> <span class="hljs-operator">=</span> message.getMessageId().toString();<br>            <span class="hljs-comment">// 主题名（originTopicNameStr）</span><br>            <span class="hljs-type">String</span> <span class="hljs-variable">originTopicNameStr</span> <span class="hljs-operator">=</span> getOriginTopicNameStr(message);<br>            <span class="hljs-comment">// 并将它们作为属性添加到重试消息中。</span><br>            SortedMap&lt;String, String&gt; propertiesMap =<br>                    getPropertiesMap(message, originMessageIdStr, originTopicNameStr);<br>            <span class="hljs-keyword">if</span> (customProperties != <span class="hljs-literal">null</span>) &#123;<br>                propertiesMap.putAll(customProperties);<br>            &#125;<br>            <span class="hljs-comment">// 并将它们作为属性添加到重试消息中。</span><br>            <span class="hljs-type">int</span> <span class="hljs-variable">reconsumeTimes</span> <span class="hljs-operator">=</span> <span class="hljs-number">1</span>;<br>            <span class="hljs-comment">// 如果消息已经包含了 RECONSUMETIMES 属性，说明这是重新消费的消息，增加其计数。</span><br>            <span class="hljs-keyword">if</span> (propertiesMap.containsKey(RetryMessageUtil.SYSTEM_PROPERTY_RECONSUMETIMES)) &#123;<br>                reconsumeTimes = Integer.parseInt(<br>                        propertiesMap.get(RetryMessageUtil.SYSTEM_PROPERTY_RECONSUMETIMES));<br>                reconsumeTimes = reconsumeTimes + <span class="hljs-number">1</span>;<br>            &#125;<br>            propertiesMap.put(RetryMessageUtil.SYSTEM_PROPERTY_RECONSUMETIMES, String.valueOf(reconsumeTimes));<br>            propertiesMap.put(RetryMessageUtil.SYSTEM_PROPERTY_DELAY_TIME,<br>                    String.valueOf(unit.toMillis(delayTime)));<br><br>            <span class="hljs-type">MessageId</span> <span class="hljs-variable">finalMessageId</span> <span class="hljs-operator">=</span> messageId;<br>            <span class="hljs-keyword">if</span> (reconsumeTimes &gt; <span class="hljs-built_in">this</span>.deadLetterPolicy.getMaxRedeliverCount()<br>                    &amp;&amp; StringUtils.isNotBlank(deadLetterPolicy.getDeadLetterTopic())) &#123;<br>                <span class="hljs-comment">// 超过最大重试次数并发送到死信队列    </span><br>                initDeadLetterProducerIfNeeded();<br>                deadLetterProducer.thenAcceptAsync(dlqProducer -&gt; &#123;<br>                    TypedMessageBuilder&lt;<span class="hljs-type">byte</span>[]&gt; typedMessageBuilderNew =<br>                            dlqProducer.newMessage(Schema.AUTO_PRODUCE_BYTES(retryMessage.getReaderSchema().get()))<br>                                    .value(retryMessage.getData())<br>                                    .properties(propertiesMap);<br>                    typedMessageBuilderNew.sendAsync().thenAccept(msgId -&gt; &#123;<br>                        consumerDlqMessagesCounter.increment();<br><br>                        doAcknowledge(finalMessageId, ackType, Collections.emptyMap(), <span class="hljs-literal">null</span>).thenAccept(v -&gt; &#123;<br>                            result.complete(<span class="hljs-literal">null</span>);<br>                        &#125;).exceptionally(ex -&gt; &#123;<br>                            result.completeExceptionally(ex);<br>                            <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span>;<br>                        &#125;);<br>                    &#125;).exceptionally(ex -&gt; &#123;<br>                        result.completeExceptionally(ex);<br>                        <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span>;<br>                    &#125;);<br>                &#125;, internalPinnedExecutor).exceptionally(ex -&gt; &#123;<br>                    result.completeExceptionally(ex);<br>                    deadLetterProducer = <span class="hljs-literal">null</span>;<br>                    <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span>;<br>                &#125;);<br>            &#125; <span class="hljs-keyword">else</span> &#123;<br>                <span class="hljs-comment">// 如果消息的重试次数未达到最大限制，则将消息发送到重试队列</span><br>                <span class="hljs-keyword">assert</span> retryMessage != <span class="hljs-literal">null</span>;<br>                TypedMessageBuilder&lt;<span class="hljs-type">byte</span>[]&gt; typedMessageBuilderNew = retryLetterProducer<br>                        .newMessage(Schema.AUTO_PRODUCE_BYTES(message.getReaderSchema().get()))<br>                        .value(retryMessage.getData())<br>                        .properties(propertiesMap);<br>                <span class="hljs-keyword">if</span> (delayTime &gt; <span class="hljs-number">0</span>) &#123;<br>                    typedMessageBuilderNew.deliverAfter(delayTime, unit);<br>                &#125;<br>                <span class="hljs-keyword">if</span> (message.hasKey()) &#123;<br>                    typedMessageBuilderNew.key(message.getKey());<br>                &#125;<br>                typedMessageBuilderNew.sendAsync()<br>                        .thenCompose(__ -&gt; doAcknowledge(finalMessageId, ackType, Collections.emptyMap(), <span class="hljs-literal">null</span>))<br>                        .thenAccept(v -&gt; result.complete(<span class="hljs-literal">null</span>))<br>                        .exceptionally(ex -&gt; &#123;<br>                            result.completeExceptionally(ex);<br>                            <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span>;<br>                        &#125;);<br>            &#125;<br>        &#125; <span class="hljs-keyword">catch</span> (Exception e) &#123;<br>            result.completeExceptionally(e);<br>        &#125;<br>    &#125;<br>    <span class="hljs-type">MessageId</span> <span class="hljs-variable">finalMessageId</span> <span class="hljs-operator">=</span> messageId;<br>    result.exceptionally(ex -&gt; &#123;<br>        log.error(<span class="hljs-string">&quot;Send to retry letter topic exception with topic: &#123;&#125;, messageId: &#123;&#125;&quot;</span>,<br>                retryLetterProducer.getTopic(), finalMessageId, ex);<br>        Set&lt;MessageId&gt; messageIds = Collections.singleton(finalMessageId);<br>        unAckedMessageTracker.remove(finalMessageId);<br>        redeliverUnacknowledgedMessages(messageIds);<br>        <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span>;<br>    &#125;);<br>    <span class="hljs-keyword">return</span> result;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>多分区<code>MultiTopicsConsumerImpl</code>实现<code>doReconsumeLater</code>抽象方法</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-meta">@Override</span><br><span class="hljs-keyword">protected</span> CompletableFuture&lt;Void&gt; <span class="hljs-title function_">doReconsumeLater</span><span class="hljs-params">(Message&lt;?&gt; message, AckType ackType,</span><br><span class="hljs-params">                                                   Map&lt;String, String&gt; customProperties,</span><br><span class="hljs-params">                                                   <span class="hljs-type">long</span> delayTime,</span><br><span class="hljs-params">                                                   TimeUnit unit)</span> &#123;<br>    <span class="hljs-type">MessageId</span> <span class="hljs-variable">messageId</span> <span class="hljs-operator">=</span> message.getMessageId();<br>    <span class="hljs-keyword">if</span> (messageId == <span class="hljs-literal">null</span>) &#123;<br>        <span class="hljs-keyword">return</span> FutureUtil.failedFuture(<span class="hljs-keyword">new</span> <span class="hljs-title class_">PulsarClientException</span><br>                .InvalidMessageException(<span class="hljs-string">&quot;Cannot handle message with null messageId&quot;</span>));<br>    &#125;<br>    <span class="hljs-keyword">if</span> (!(messageId <span class="hljs-keyword">instanceof</span> TopicMessageId)) &#123;<br>        <span class="hljs-keyword">return</span> FutureUtil.failedFuture(<span class="hljs-keyword">new</span> <span class="hljs-title class_">PulsarClientException</span>.NotAllowedException(<br>                <span class="hljs-string">&quot;Only TopicMessageId is allowed for reconsumeLater for a multi-topics consumer, while messageId is &quot;</span><br>                        + message.getClass().getName()));<br>    &#125;<br>    <span class="hljs-type">TopicMessageId</span> <span class="hljs-variable">topicMessageId</span> <span class="hljs-operator">=</span> (TopicMessageId) messageId;<br>    <span class="hljs-keyword">if</span> (getState() != State.Ready) &#123;<br>        <span class="hljs-keyword">return</span> FutureUtil.failedFuture(<span class="hljs-keyword">new</span> <span class="hljs-title class_">PulsarClientException</span>(<span class="hljs-string">&quot;Consumer already closed&quot;</span>));<br>    &#125;<br><br>    <span class="hljs-keyword">if</span> (ackType == AckType.Cumulative) &#123;<br>        Consumer&lt;T&gt; individualConsumer = consumers.get(topicMessageId.getOwnerTopic());<br>        <span class="hljs-keyword">if</span> (individualConsumer != <span class="hljs-literal">null</span>) &#123;<br>            <span class="hljs-keyword">return</span> individualConsumer.reconsumeLaterCumulativeAsync(message, delayTime, unit);<br>        &#125; <span class="hljs-keyword">else</span> &#123;<br>            <span class="hljs-keyword">return</span> FutureUtil.failedFuture(<span class="hljs-keyword">new</span> <span class="hljs-title class_">PulsarClientException</span>.NotConnectedException());<br>        &#125;<br>    &#125; <span class="hljs-keyword">else</span> &#123;<br>        <span class="hljs-comment">// 实际也是调用单分区的doReconsumeLater方法</span><br>        ConsumerImpl&lt;T&gt; consumer = consumers.get(topicMessageId.getOwnerTopic());<br>        <span class="hljs-keyword">return</span> consumer.doReconsumeLater(message, ackType, customProperties, delayTime, unit)<br>                 .thenRun(() -&gt;unAckedMessageTracker.remove(topicMessageId));<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h2 id="否定确认"><a href="#否定确认" class="headerlink" title="否定确认"></a>否定确认</h2><pre><code class="hljs">否定确认机制允许您向Broker发送通知，指出消费者没有处理消息。当消费者未能消费消息并需要重新消费它时，消费者向Broker发送否定确认（nack），触发Broker将此消息重新传递给消费者。
+
+在Exclusive和Exclusive订阅类型中，消费者只对他们收到的最后一条消息进行否定确认。
+
+在Shared和Key_Shared订阅类型中，消费者可以分别否定确认消息。
+
+如果要对消息使用否定确认，请确保在确认超时之前进行否定确认
+</code></pre>
+<h3 id="使用方式-1"><a href="#使用方式-1" class="headerlink" title="使用方式"></a>使用方式</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><code class="hljs java">Consumer&lt;<span class="hljs-type">byte</span>[]&gt; consumer = pulsarClient.newConsumer()<br>        .topic(topic)<br>        .subscriptionName(<span class="hljs-string">&quot;sub-negative-ack&quot;</span>)<br>        .subscriptionInitialPosition(SubscriptionInitialPosition.Earliest)<br>        <span class="hljs-comment">// 以不同的延迟来</span><br>        .negativeAckRedeliveryBackoff(MultiplierRedeliveryBackoff.builder()<br>            .minDelayMs(<span class="hljs-number">1000</span>)<br>            .maxDelayMs(<span class="hljs-number">60</span> * <span class="hljs-number">1000</span>)<br>            .multiplier(<span class="hljs-number">2</span>)<br>            .build())<br>        .subscribe();<br><br><span class="hljs-keyword">while</span> (<span class="hljs-literal">true</span>) &#123;<br>    Message&lt;String&gt; msg = consumer.receive();<br>    <span class="hljs-keyword">try</span> &#123;<br>         <span class="hljs-comment">// Process message...</span><br>         consumer.acknowledge(msg);<br>    &#125; <span class="hljs-keyword">catch</span> (Throwable t) &#123;<br>         log.warn(<span class="hljs-string">&quot;Failed to process message&quot;</span>);<br>         consumer.negativeAcknowledge(msg);<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h3 id="具体实现-1"><a href="#具体实现-1" class="headerlink" title="具体实现"></a>具体实现</h3><p><code>Consumer</code>接口</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">void</span> <span class="hljs-title function_">negativeAcknowledge</span><span class="hljs-params">(Message&lt;?&gt; message)</span>;<br></code></pre></td></tr></table></figure>
+
+<p><code>ConsumerImpl</code>实现</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-meta">@Override</span><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">negativeAcknowledge</span><span class="hljs-params">(MessageId messageId)</span> &#123;<br>    consumerNacksCounter.increment();<br>    <span class="hljs-comment">// 添加到否定确认跟踪器中</span><br>    negativeAcksTracker.add(messageId);<br><br>    <span class="hljs-comment">// Ensure the message is not redelivered for ack-timeout, since we did receive an &quot;ack&quot;</span><br>    unAckedMessageTracker.remove(messageId);<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p><code>NegativeAcksTracker</code>主要实现</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">class</span> <span class="hljs-title class_">NegativeAcksTracker</span> <span class="hljs-keyword">implements</span> <span class="hljs-title class_">Closeable</span> &#123;<br>    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-type">Logger</span> <span class="hljs-variable">log</span> <span class="hljs-operator">=</span> LoggerFactory.getLogger(NegativeAcksTracker.class);<br><br>    <span class="hljs-keyword">private</span> HashMap&lt;MessageId, Long&gt; nackedMessages = <span class="hljs-literal">null</span>;<br><br>    <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> ConsumerBase&lt;?&gt; consumer;<br>    <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> Timer timer;<br>    <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> <span class="hljs-type">long</span> nackDelayNanos;<br>    <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> <span class="hljs-type">long</span> timerIntervalNanos;<br>    <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> RedeliveryBackoff negativeAckRedeliveryBackoff;<br><br>    <span class="hljs-keyword">private</span> Timeout timeout;<br><br>    <span class="hljs-comment">// Set a min delay to allow for grouping nacks within a single batch</span><br>    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-type">long</span> <span class="hljs-variable">MIN_NACK_DELAY_NANOS</span> <span class="hljs-operator">=</span> TimeUnit.MILLISECONDS.toNanos(<span class="hljs-number">100</span>);<br><br>    <span class="hljs-keyword">public</span> <span class="hljs-title function_">NegativeAcksTracker</span><span class="hljs-params">(ConsumerBase&lt;?&gt; consumer, ConsumerConfigurationData&lt;?&gt; conf)</span> &#123;<br>        <span class="hljs-built_in">this</span>.consumer = consumer;<br>        <span class="hljs-built_in">this</span>.timer = consumer.getClient().timer();<br>        <span class="hljs-built_in">this</span>.nackDelayNanos = Math.max(TimeUnit.MICROSECONDS.toNanos(conf.getNegativeAckRedeliveryDelayMicros()),<br>                MIN_NACK_DELAY_NANOS);<br>        <span class="hljs-built_in">this</span>.negativeAckRedeliveryBackoff = conf.getNegativeAckRedeliveryBackoff();<br>        <span class="hljs-keyword">if</span> (negativeAckRedeliveryBackoff != <span class="hljs-literal">null</span>) &#123;<br>            <span class="hljs-built_in">this</span>.timerIntervalNanos = Math.max(<br>                    TimeUnit.MILLISECONDS.toNanos(negativeAckRedeliveryBackoff.next(<span class="hljs-number">0</span>)),<br>                    MIN_NACK_DELAY_NANOS) / <span class="hljs-number">3</span>;<br>        &#125; <span class="hljs-keyword">else</span> &#123;<br>            <span class="hljs-built_in">this</span>.timerIntervalNanos = nackDelayNanos / <span class="hljs-number">3</span>;<br>        &#125;<br>    &#125;<br><br>    <span class="hljs-keyword">private</span> <span class="hljs-keyword">synchronized</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">triggerRedelivery</span><span class="hljs-params">(Timeout t)</span> &#123;<br>        <span class="hljs-comment">// 检查是否有消息需要重新投递。如果没有，设置timeout为null并退出</span><br>        <span class="hljs-keyword">if</span> (nackedMessages.isEmpty()) &#123;<br>            <span class="hljs-built_in">this</span>.timeout = <span class="hljs-literal">null</span>;<br>            <span class="hljs-keyword">return</span>;<br>        &#125;<br><br>        <span class="hljs-comment">// Group all the nacked messages into one single re-delivery request</span><br>        Set&lt;MessageId&gt; messagesToRedeliver = <span class="hljs-keyword">new</span> <span class="hljs-title class_">HashSet</span>&lt;&gt;();<br>        <span class="hljs-type">long</span> <span class="hljs-variable">now</span> <span class="hljs-operator">=</span> System.nanoTime();<br>        nackedMessages.forEach((msgId, timestamp) -&gt; &#123;<br>            <span class="hljs-comment">// 检查每条消息的时间戳是否已到。如果已到，将其添加到messagesToRedeliver集合中</span><br>            <span class="hljs-keyword">if</span> (timestamp &lt; now) &#123;<br>                addChunkedMessageIdsAndRemoveFromSequenceMap(msgId, messagesToRedeliver, <span class="hljs-built_in">this</span>.consumer);<br>                messagesToRedeliver.add(msgId);<br>            &#125;<br>        &#125;);<br><br>        <span class="hljs-comment">// 移除并调用consumer.onNegativeAcksSend(messagesToRedeliver)和consumer.redeliverUnacknowledgedMessages(messagesToRedeliver)来处理重发</span><br>        <span class="hljs-keyword">if</span> (!messagesToRedeliver.isEmpty()) &#123;<br>            <br>            messagesToRedeliver.forEach(nackedMessages::remove);<br>            consumer.onNegativeAcksSend(messagesToRedeliver);<br>            log.info(<span class="hljs-string">&quot;[&#123;&#125;] &#123;&#125; messages will be re-delivered&quot;</span>, consumer, messagesToRedeliver.size());<br>            <span class="hljs-comment">// 调用重新投递方法</span><br>            consumer.redeliverUnacknowledgedMessages(messagesToRedeliver);<br>        &#125;<br><br>        <span class="hljs-built_in">this</span>.timeout = timer.newTimeout(<span class="hljs-built_in">this</span>::triggerRedelivery, timerIntervalNanos, TimeUnit.NANOSECONDS);<br>    &#125;<br><br><br>    <span class="hljs-keyword">private</span> <span class="hljs-keyword">synchronized</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">add</span><span class="hljs-params">(MessageId messageId, <span class="hljs-type">int</span> redeliveryCount)</span> &#123;<br>        <span class="hljs-keyword">if</span> (nackedMessages == <span class="hljs-literal">null</span>) &#123;<br>            nackedMessages = <span class="hljs-keyword">new</span> <span class="hljs-title class_">HashMap</span>&lt;&gt;();<br>        &#125;<br><br>        <span class="hljs-type">long</span> backoffNs;<br>        <span class="hljs-keyword">if</span> (negativeAckRedeliveryBackoff != <span class="hljs-literal">null</span>) &#123;<br>            backoffNs = TimeUnit.MILLISECONDS.toNanos(negativeAckRedeliveryBackoff.next(redeliveryCount));<br>        &#125; <span class="hljs-keyword">else</span> &#123;<br>            backoffNs = nackDelayNanos;<br>        &#125;<br>        <span class="hljs-comment">// 将消息添加到否定确认消息map中，并设置超时时间戳</span><br>        nackedMessages.put(MessageIdAdvUtils.discardBatch(messageId), System.nanoTime() + backoffNs);<br><br>        <span class="hljs-keyword">if</span> (<span class="hljs-built_in">this</span>.timeout == <span class="hljs-literal">null</span>) &#123;<br>            <span class="hljs-comment">// Schedule a task and group all the redeliveries for same period. Leave a small buffer to allow for</span><br>            <span class="hljs-comment">// nack immediately following the current one will be batched into the same redeliver request.</span><br>            <span class="hljs-comment">// 定时任务触发重新投递</span><br>            <span class="hljs-built_in">this</span>.timeout = timer.newTimeout(<span class="hljs-built_in">this</span>::triggerRedelivery, timerIntervalNanos, TimeUnit.NANOSECONDS);<br>        &#125;<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h2 id="未确认消息跟踪器"><a href="#未确认消息跟踪器" class="headerlink" title="未确认消息跟踪器"></a>未确认消息跟踪器</h2><h3 id="使用方式-2"><a href="#使用方式-2" class="headerlink" title="使用方式"></a>使用方式</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs java">Consumer&lt;<span class="hljs-type">byte</span>[]&gt; consumer = pulsarClient.newConsumer() <span class="hljs-comment">//</span><br>        .topic(<span class="hljs-string">&quot;persistent://my-tenant/my-ns/my-topic&quot;</span>) <span class="hljs-comment">//</span><br>        .ackTimeout(<span class="hljs-number">5</span>, TimeUnit.SECONDS)<br>        .ackTimeoutRedeliveryBackoff(MultiplierRedeliveryBackoff.builder()<br>                .minDelayMs(<span class="hljs-number">1000</span>)<br>                .maxDelayMs(<span class="hljs-number">60000</span>)<br>                .multiplier(<span class="hljs-number">2</span>)<br>                .build())<br>        .subscriptionName(<span class="hljs-string">&quot;my-subscription-name&quot;</span>).subscribe();<br></code></pre></td></tr></table></figure>
+<p>以上的<code>ackTimeoutRedeliveryBackoff</code>配置，消息重新传递行为应如下所示</p>
+<table>
+<thead>
+<tr>
+<th>重新投递次数</th>
+<th>重新投递延迟</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>1 seconds</td>
+</tr>
+<tr>
+<td>2</td>
+<td>2 seconds</td>
+</tr>
+<tr>
+<td>3</td>
+<td>4 seconds</td>
+</tr>
+<tr>
+<td>4</td>
+<td>8 seconds</td>
+</tr>
+<tr>
+<td>5</td>
+<td>16 seconds</td>
+</tr>
+<tr>
+<td>6</td>
+<td>32 seconds</td>
+</tr>
+<tr>
+<td>7</td>
+<td>60 seconds</td>
+</tr>
+<tr>
+<td>8</td>
+<td>60 seconds</td>
+</tr>
+</tbody></table>
+<p>每当客户端接收到消息时<br>ConsumerImpl.messageReceived() -&gt; executeNotifyCallback() -&gt; messageProcessed() -&gt; trackMessage() -&gt; trackUnAckedMsgIfNoListener() 将消息加入未确认消息跟踪器中</p>
+<p>在<code>ConsumerBase</code>中初始化<code>unAckedMessageTracker</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">if</span> (conf.getAckTimeoutMillis() != <span class="hljs-number">0</span>) &#123;<br>    <span class="hljs-keyword">if</span> (conf.getAckTimeoutRedeliveryBackoff() != <span class="hljs-literal">null</span>) &#123;<br>        <span class="hljs-built_in">this</span>.unAckedMessageTracker = <span class="hljs-keyword">new</span> <span class="hljs-title class_">UnAckedTopicMessageRedeliveryTracker</span>(client, <span class="hljs-built_in">this</span>, conf);<br>    &#125; <span class="hljs-keyword">else</span> &#123;<br>        <span class="hljs-built_in">this</span>.unAckedMessageTracker = <span class="hljs-keyword">new</span> <span class="hljs-title class_">UnAckedTopicMessageTracker</span>(client, <span class="hljs-built_in">this</span>, conf);<br>    &#125;<br>&#125; <span class="hljs-keyword">else</span> &#123;<br>    <span class="hljs-built_in">this</span>.unAckedMessageTracker = UnAckedMessageTracker.UNACKED_MESSAGE_TRACKER_DISABLED;<br>&#125; <br></code></pre></td></tr></table></figure>
+
+<h3 id="具体实现-2"><a href="#具体实现-2" class="headerlink" title="具体实现"></a>具体实现</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">UnAckedMessageTracker</span> <span class="hljs-keyword">implements</span> <span class="hljs-title class_">Closeable</span> &#123;<br>    <span class="hljs-comment">// UnAckedMessageTracker 的属性</span><br>    <span class="hljs-comment">// 消息ID-消息集（为了更好的针对消息ID索引）</span><br>    <span class="hljs-keyword">protected</span> <span class="hljs-keyword">final</span> HashMap&lt;MessageId, HashSet&lt;MessageId&gt;&gt; messageIdPartitionMap;<br>    <span class="hljs-comment">// 双向列表 用于时间分区</span><br>    <span class="hljs-keyword">protected</span> <span class="hljs-keyword">final</span> ArrayDeque&lt;HashSet&lt;MessageId&gt;&gt; timePartitions;<br><br>    <span class="hljs-comment">// 读写锁</span><br>    <span class="hljs-keyword">protected</span> <span class="hljs-keyword">final</span> Lock readLock;<br>    <span class="hljs-keyword">protected</span> <span class="hljs-keyword">final</span> Lock writeLock;<br><br>    <span class="hljs-comment">// UnAckedMessageTracker 的空实现，用于非持久化消息组件</span><br>    <span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-type">UnAckedMessageTrackerDisabled</span> <span class="hljs-variable">UNACKED_MESSAGE_TRACKER_DISABLED</span> <span class="hljs-operator">=</span><br>            <span class="hljs-keyword">new</span> <span class="hljs-title class_">UnAckedMessageTrackerDisabled</span>();<br>    <span class="hljs-comment">// 确认超时时间</span><br>    <span class="hljs-keyword">protected</span> <span class="hljs-keyword">final</span> <span class="hljs-type">long</span> ackTimeoutMillis;<br>    <span class="hljs-comment">// 定时器的触发间隔</span><br>    <span class="hljs-keyword">protected</span> <span class="hljs-keyword">final</span> <span class="hljs-type">long</span> tickDurationInMs;<br><br>    <span class="hljs-comment">// 消费者ack超时计数器</span><br>    <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> Counter consumerAckTimeoutsCounter;<br><br>    <span class="hljs-keyword">protected</span> Timeout timeout;<br><br>    <span class="hljs-keyword">public</span> <span class="hljs-title function_">UnAckedMessageTracker</span><span class="hljs-params">(PulsarClientImpl client, ConsumerBase&lt;?&gt; consumerBase,</span><br><span class="hljs-params">                                ConsumerConfigurationData&lt;?&gt; conf)</span> &#123;<br>        <span class="hljs-comment">// 超时时间                         </span><br>        <span class="hljs-built_in">this</span>.ackTimeoutMillis = conf.getAckTimeoutMillis();<br>        <span class="hljs-comment">// 定时器的间隔时间</span><br>        <span class="hljs-built_in">this</span>.tickDurationInMs = Math.min(conf.getTickDurationMillis(), conf.getAckTimeoutMillis());<br>        <span class="hljs-comment">// 定时器的触发间隔必须大于0，并且确认超时时间大于等于单位时间</span><br>        checkArgument(tickDurationInMs &gt; <span class="hljs-number">0</span> &amp;&amp; ackTimeoutMillis &gt;= tickDurationInMs);<br>        <span class="hljs-type">ReentrantReadWriteLock</span> <span class="hljs-variable">readWriteLock</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">ReentrantReadWriteLock</span>();<br>        <span class="hljs-built_in">this</span>.readLock = readWriteLock.readLock();<br>        <span class="hljs-built_in">this</span>.writeLock = readWriteLock.writeLock();<br><br>        <span class="hljs-type">InstrumentProvider</span> <span class="hljs-variable">ip</span> <span class="hljs-operator">=</span> client.instrumentProvider();<br>        consumerAckTimeoutsCounter = ip.newCounter(<span class="hljs-string">&quot;pulsar.client.consumer.message.ack.timeout&quot;</span>, Unit.Messages,<br>                <span class="hljs-string">&quot;The number of messages that were not acknowledged in the configured timeout period, hence, were &quot;</span><br>                        + <span class="hljs-string">&quot;requested by the client to be redelivered&quot;</span>,<br>                consumerBase.getTopic(),<br>                Attributes.builder().put(<span class="hljs-string">&quot;pulsar.subscription&quot;</span>, consumerBase.getSubscription()).build());<br>        <span class="hljs-comment">// 如果不为空则初始化为UnAckedTopicMessageRedeliveryTracker</span><br>        <span class="hljs-keyword">if</span> (conf.getAckTimeoutRedeliveryBackoff() == <span class="hljs-literal">null</span>) &#123;<br>            <span class="hljs-comment">// 这里主要用于存储消息ID和消息的映射</span><br>            <span class="hljs-built_in">this</span>.messageIdPartitionMap = <span class="hljs-keyword">new</span> <span class="hljs-title class_">HashMap</span>&lt;&gt;();<br>            <span class="hljs-comment">// 从头部移除，尾部追加数据</span><br>            <span class="hljs-built_in">this</span>.timePartitions = <span class="hljs-keyword">new</span> <span class="hljs-title class_">ArrayDeque</span>&lt;&gt;();<br>            <span class="hljs-comment">// 设置一个时间分区，假设确认超时时间为11000ms，单位时间为2000ms，此时计算结果为5</span><br>            <span class="hljs-type">int</span> <span class="hljs-variable">blankPartitions</span> <span class="hljs-operator">=</span> (<span class="hljs-type">int</span>) Math.ceil((<span class="hljs-type">double</span>) <span class="hljs-built_in">this</span>.ackTimeoutMillis / <span class="hljs-built_in">this</span>.tickDurationInMs);<br>            <span class="hljs-comment">// 创建6个时间分区容器</span><br>            <span class="hljs-keyword">for</span> (<span class="hljs-type">int</span> <span class="hljs-variable">i</span> <span class="hljs-operator">=</span> <span class="hljs-number">0</span>; i &lt; blankPartitions + <span class="hljs-number">1</span>; i++) &#123;<br>                timePartitions.add(<span class="hljs-keyword">new</span> <span class="hljs-title class_">HashSet</span>&lt;&gt;(<span class="hljs-number">16</span>, <span class="hljs-number">1</span>));<br>            &#125;<br>            <span class="hljs-comment">// 新增一个定时器任务，tickDurationInMs 为轮询间隔</span><br>            <span class="hljs-comment">// 也就是这里会处理消息消费超时，并通知broker进行重新投递</span><br>            timeout = client.timer().newTimeout(<span class="hljs-keyword">new</span> <span class="hljs-title class_">TimerTask</span>() &#123;<br>                <span class="hljs-meta">@Override</span><br>                <span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">run</span><span class="hljs-params">(Timeout t)</span> <span class="hljs-keyword">throws</span> Exception &#123;<br>                    <span class="hljs-keyword">if</span> (t.isCancelled()) &#123;<br>                        <span class="hljs-keyword">return</span>;<br>                    &#125;<br><br>                    Set&lt;MessageId&gt; messageIds = TL_MESSAGE_IDS_SET.get();<br>                    messageIds.clear();<br><br>                    writeLock.lock();<br>                    <span class="hljs-keyword">try</span> &#123;<br>                        <span class="hljs-comment">// 取出并移除队列头部的分区</span><br>                        HashSet&lt;MessageId&gt; headPartition = timePartitions.removeFirst();<br>                        <span class="hljs-comment">// 如果头部分区不为空</span><br>                        <span class="hljs-keyword">if</span> (!headPartition.isEmpty()) &#123;<br>                            consumerAckTimeoutsCounter.add(headPartition.size());<br>                            log.info(<span class="hljs-string">&quot;[&#123;&#125;] &#123;&#125; messages will be re-delivered&quot;</span>, consumerBase, headPartition.size());<br>                            headPartition.forEach(messageId -&gt; &#123;<br>                                <span class="hljs-comment">// 分片消息</span><br>                                <span class="hljs-keyword">if</span> (messageId <span class="hljs-keyword">instanceof</span> ChunkMessageIdImpl) &#123;<br>                                    addChunkedMessageIdsAndRemoveFromSequenceMap(messageId, messageIds, consumerBase);<br>                                &#125; <span class="hljs-keyword">else</span> &#123;<br>                                    messageIds.add(messageId);<br>                                &#125;<br>                                <span class="hljs-comment">// 从消息id-分区map中删除</span><br>                                messageIdPartitionMap.remove(messageId);<br>                            &#125;);<br>                        &#125;<br>                        <br>                        <span class="hljs-comment">// 清空头部分区</span><br>                        headPartition.clear();<br>                        <span class="hljs-comment">// 加入队列的尾部</span><br>                        timePartitions.addLast(headPartition);<br>                    &#125; <span class="hljs-keyword">finally</span> &#123;<br>                        <span class="hljs-keyword">try</span> &#123;<br>                            timeout = client.timer().newTimeout(<span class="hljs-built_in">this</span>, tickDurationInMs, TimeUnit.MILLISECONDS);<br>                        &#125; <span class="hljs-keyword">finally</span> &#123;<br>                            writeLock.unlock();<br><br>                            <span class="hljs-keyword">if</span> (!messageIds.isEmpty()) &#123;<br>                                consumerBase.onAckTimeoutSend(messageIds);<br>                                consumerBase.redeliverUnacknowledgedMessages(messageIds);<br>                            &#125;<br>                        &#125;<br>                    &#125;<br>                &#125;<br>            &#125;, <span class="hljs-built_in">this</span>.tickDurationInMs, TimeUnit.MILLISECONDS);<br>        &#125; <span class="hljs-keyword">else</span> &#123;<br>            <span class="hljs-built_in">this</span>.messageIdPartitionMap = <span class="hljs-literal">null</span>;<br>            <span class="hljs-built_in">this</span>.timePartitions = <span class="hljs-literal">null</span>;<br>        &#125;<br>    &#125;<br><br>    <span class="hljs-comment">/*添加逻辑分析</span><br><span class="hljs-comment">    为什么加入尾部分区？</span><br><span class="hljs-comment">    最近添加的消息：未确认的消息是按照它们的添加时间进行管理的。最近添加的消息应该被放置在队列的尾部分区中，因为这些消息离超时的阈值还很远，不需要马上进行超时检查。</span><br><span class="hljs-comment">    超时检查顺序：定时器会从头部分区开始检查未确认消息。如果新的消息被加入到尾部分区，就可以保证这些消息在未来的检查周期内才会被考虑超时，而不是立即被处理。</span><br><span class="hljs-comment">    添加的具体操作</span><br><span class="hljs-comment">    在 add(MessageId messageId) 方法中：</span><br><span class="hljs-comment">    使用 timePartitions.peekLast() 获取 ArrayDeque 中的尾部分区。</span><br><span class="hljs-comment">    将新的 MessageId 加入这个尾部分区中。</span><br><span class="hljs-comment">    */</span><br>    <span class="hljs-keyword">public</span> <span class="hljs-type">boolean</span> <span class="hljs-title function_">add</span><span class="hljs-params">(MessageId messageId)</span> &#123;<br>        writeLock.lock();<br>        <span class="hljs-keyword">try</span> &#123;<br>            <span class="hljs-comment">// 取出队列尾部的集合</span><br>            HashSet&lt;MessageId&gt; partition = timePartitions.peekLast();<br>            <span class="hljs-comment">// 如果原map不存在映射则将消息id-分区的映射放入messageIdPartitionMap</span><br>            HashSet&lt;MessageId&gt; previousPartition = messageIdPartitionMap.putIfAbsent(messageId, partition);<br>            <span class="hljs-keyword">if</span> (previousPartition == <span class="hljs-literal">null</span>) &#123;<br>                <span class="hljs-comment">// 之前不存在映射，则将消息id放入队尾分区的集合中</span><br>                <span class="hljs-keyword">return</span> partition.add(messageId);<br>            &#125; <span class="hljs-keyword">else</span> &#123;<br>                <span class="hljs-comment">// 之前存在映射，不做处理</span><br>                <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;<br>            &#125;<br>        &#125; <span class="hljs-keyword">finally</span> &#123;<br>            writeLock.unlock();<br>        &#125;<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p><code>UnAckedMessageRedeliveryTracker</code>实现</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">UnAckedMessageRedeliveryTracker</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_">UnAckedMessageTracker</span> &#123;<br><br>    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-type">Logger</span> <span class="hljs-variable">log</span> <span class="hljs-operator">=</span> LoggerFactory.getLogger(UnAckedMessageRedeliveryTracker.class);<br><br>    <span class="hljs-keyword">protected</span> <span class="hljs-keyword">final</span> HashMap&lt;UnackMessageIdWrapper, HashSet&lt;UnackMessageIdWrapper&gt;&gt; redeliveryMessageIdPartitionMap;<br>    <span class="hljs-keyword">protected</span> <span class="hljs-keyword">final</span> ArrayDeque&lt;HashSet&lt;UnackMessageIdWrapper&gt;&gt; redeliveryTimePartitions;<br><br>    <span class="hljs-keyword">protected</span> <span class="hljs-keyword">final</span> HashMap&lt;MessageId, Long&gt; ackTimeoutMessages;<br>    <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> RedeliveryBackoff ackTimeoutRedeliveryBackoff;<br><br>    <span class="hljs-keyword">public</span> <span class="hljs-title function_">UnAckedMessageRedeliveryTracker</span><span class="hljs-params">(PulsarClientImpl client, ConsumerBase&lt;?&gt; consumerBase,</span><br><span class="hljs-params">                                           ConsumerConfigurationData&lt;?&gt; conf)</span> &#123;<br>        <span class="hljs-built_in">super</span>(client, consumerBase, conf);<br>        <span class="hljs-built_in">this</span>.ackTimeoutRedeliveryBackoff = conf.getAckTimeoutRedeliveryBackoff();<br>        <span class="hljs-built_in">this</span>.ackTimeoutMessages = <span class="hljs-keyword">new</span> <span class="hljs-title class_">HashMap</span>&lt;MessageId, Long&gt;();<br>        <span class="hljs-built_in">this</span>.redeliveryMessageIdPartitionMap = <span class="hljs-keyword">new</span> <span class="hljs-title class_">HashMap</span>&lt;&gt;();<br>        <span class="hljs-built_in">this</span>.redeliveryTimePartitions = <span class="hljs-keyword">new</span> <span class="hljs-title class_">ArrayDeque</span>&lt;&gt;();<br><br>        <span class="hljs-type">int</span> <span class="hljs-variable">blankPartitions</span> <span class="hljs-operator">=</span> (<span class="hljs-type">int</span>) Math.ceil((<span class="hljs-type">double</span>) <span class="hljs-built_in">this</span>.ackTimeoutMillis / <span class="hljs-built_in">this</span>.tickDurationInMs);<br>        <span class="hljs-keyword">for</span> (<span class="hljs-type">int</span> <span class="hljs-variable">i</span> <span class="hljs-operator">=</span> <span class="hljs-number">0</span>; i &lt; blankPartitions + <span class="hljs-number">1</span>; i++) &#123;<br>            redeliveryTimePartitions.add(<span class="hljs-keyword">new</span> <span class="hljs-title class_">HashSet</span>&lt;&gt;(<span class="hljs-number">16</span>, <span class="hljs-number">1</span>));<br>        &#125;<br><br>        timeout = client.timer().newTimeout(<span class="hljs-keyword">new</span> <span class="hljs-title class_">TimerTask</span>() &#123;<br>            <span class="hljs-meta">@Override</span><br>            <span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">run</span><span class="hljs-params">(Timeout t)</span> <span class="hljs-keyword">throws</span> Exception &#123;<br>                writeLock.lock();<br>                <span class="hljs-keyword">try</span> &#123;<br>                    HashSet&lt;UnackMessageIdWrapper&gt; headPartition = redeliveryTimePartitions.removeFirst();<br>                    <span class="hljs-keyword">if</span> (!headPartition.isEmpty()) &#123;<br>                        headPartition.forEach(unackMessageIdWrapper -&gt; &#123;<br>                            addAckTimeoutMessages(unackMessageIdWrapper);<br>                            redeliveryMessageIdPartitionMap.remove(unackMessageIdWrapper);<br>                            unackMessageIdWrapper.recycle();<br>                        &#125;);<br>                    &#125;<br>                    headPartition.clear();<br>                    redeliveryTimePartitions.addLast(headPartition);<br>                    triggerRedelivery(consumerBase);<br>                &#125; <span class="hljs-keyword">finally</span> &#123;<br>                    writeLock.unlock();<br>                    timeout = client.timer().newTimeout(<span class="hljs-built_in">this</span>, tickDurationInMs, TimeUnit.MILLISECONDS);<br>                &#125;<br>            &#125;<br>        &#125;, <span class="hljs-built_in">this</span>.tickDurationInMs, TimeUnit.MILLISECONDS);<br><br>    &#125;<br>    <br>    <span class="hljs-comment">// 添加超时消息</span><br>    <span class="hljs-keyword">private</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">addAckTimeoutMessages</span><span class="hljs-params">(UnackMessageIdWrapper messageIdWrapper)</span> &#123;<br>        writeLock.lock();<br>        <span class="hljs-keyword">try</span> &#123;<br>            <span class="hljs-type">MessageId</span> <span class="hljs-variable">messageId</span> <span class="hljs-operator">=</span> messageIdWrapper.getMessageId();<br>            <span class="hljs-type">int</span> <span class="hljs-variable">redeliveryCount</span> <span class="hljs-operator">=</span> messageIdWrapper.getRedeliveryCount();<br>            <span class="hljs-comment">// 计算下次超时时间</span><br>            <span class="hljs-type">long</span> <span class="hljs-variable">backoffNs</span> <span class="hljs-operator">=</span> ackTimeoutRedeliveryBackoff.next(redeliveryCount);<br>            <span class="hljs-comment">// 消息id：超时时间的映射</span><br>            ackTimeoutMessages.put(messageId, System.currentTimeMillis() + backoffNs);<br>        &#125; <span class="hljs-keyword">finally</span> &#123;<br>            writeLock.unlock();<br>        &#125;<br>    &#125;<br><br>    <span class="hljs-keyword">private</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">triggerRedelivery</span><span class="hljs-params">(ConsumerBase&lt;?&gt; consumerBase)</span> &#123;<br>        <span class="hljs-keyword">if</span> (ackTimeoutMessages.isEmpty()) &#123;<br>            <span class="hljs-keyword">return</span>;<br>        &#125;<br>        Set&lt;MessageId&gt; messageIds = TL_MESSAGE_IDS_SET.get();<br>        messageIds.clear();<br><br>        <span class="hljs-keyword">try</span> &#123;<br>            <span class="hljs-type">long</span> <span class="hljs-variable">now</span> <span class="hljs-operator">=</span> System.currentTimeMillis();<br>            ackTimeoutMessages.forEach((messageId, timestamp) -&gt; &#123;<br>                <span class="hljs-comment">// 时间戳小于等于当前时间则加入重投递消息集合中</span><br>                <span class="hljs-keyword">if</span> (timestamp &lt;= now) &#123;<br>                    addChunkedMessageIdsAndRemoveFromSequenceMap(messageId, messageIds, consumerBase);<br>                    messageIds.add(messageId);<br>                &#125;<br>            &#125;);<br>            <span class="hljs-keyword">if</span> (!messageIds.isEmpty()) &#123;<br>                log.info(<span class="hljs-string">&quot;[&#123;&#125;] &#123;&#125; messages will be re-delivered&quot;</span>, consumerBase, messageIds.size());<br>                Iterator&lt;MessageId&gt; iterator = messageIds.iterator();<br>                <span class="hljs-keyword">while</span> (iterator.hasNext()) &#123;<br>                    <span class="hljs-type">MessageId</span> <span class="hljs-variable">messageId</span> <span class="hljs-operator">=</span> iterator.next();<br>                    ackTimeoutMessages.remove(messageId);<br>                &#125;<br>            &#125;<br>        &#125; <span class="hljs-keyword">finally</span> &#123;<br>            <span class="hljs-keyword">if</span> (messageIds.size() &gt; <span class="hljs-number">0</span>) &#123;<br>                consumerBase.onAckTimeoutSend(messageIds);<br>                <span class="hljs-comment">// 触发重投递</span><br>                consumerBase.redeliverUnacknowledgedMessages(messageIds);<br>            &#125;<br>        &#125;<br>    &#125;<br><br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> <span class="hljs-type">boolean</span> <span class="hljs-title function_">add</span><span class="hljs-params">(MessageId messageId, <span class="hljs-type">int</span> redeliveryCount)</span> &#123;<br>        writeLock.lock();<br>        <span class="hljs-keyword">try</span> &#123;<br>            <span class="hljs-type">UnackMessageIdWrapper</span> <span class="hljs-variable">messageIdWrapper</span> <span class="hljs-operator">=</span> UnackMessageIdWrapper.valueOf(messageId, redeliveryCount);<br>            HashSet&lt;UnackMessageIdWrapper&gt; partition = redeliveryTimePartitions.peekLast();<br>            HashSet&lt;UnackMessageIdWrapper&gt; previousPartition = redeliveryMessageIdPartitionMap<br>                    .putIfAbsent(messageIdWrapper, partition);<br>            <span class="hljs-keyword">if</span> (previousPartition == <span class="hljs-literal">null</span>) &#123;<br>                <span class="hljs-keyword">return</span> partition.add(messageIdWrapper);<br>            &#125; <span class="hljs-keyword">else</span> &#123;<br>                messageIdWrapper.recycle();<br>                <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;<br>            &#125;<br>        &#125; <span class="hljs-keyword">finally</span> &#123;<br>            writeLock.unlock();<br>        &#125;<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>消息重试的三种方式解析</div>
+      <div>https://falser101.github.io/2024/11/13/2024/消息重试的三种方式解析/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>falser101</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2024年11月13日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2024/12/24/2024/03-hyprland%E4%B8%8B%E4%BD%BF%E7%94%A8steam%E5%AE%89%E8%A3%85%E4%BC%81%E4%B8%9A%E5%BE%AE%E4%BF%A1%E5%8E%BB%E6%8E%89%E9%98%B4%E5%BD%B1%E7%AA%97%E5%8F%A3/" title="hyprland下使用steam安装企业微信去掉阴影窗口">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">hyprland下使用steam安装企业微信去掉阴影窗口</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2024/10/30/2024/%E6%B6%88%E8%B4%B9%E8%80%85%E6%8E%A5%E6%94%B6%E6%B6%88%E6%81%AF/" title="消费者接收消息">
+                        <span class="hidden-mobile">消费者接收消息</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+    <div id="giscus" class="giscus"></div>
+    <script type="text/javascript">
+      Fluid.utils.loadComments('#giscus', function() {
+        var options = {"repo":"falser101/falser101.github.io","repo-id":"R_kgDOMveGqw","category":"Announcements","category-id":"DIC_kwDOMveGq84ClgWQ","theme-light":"light","theme-dark":"dark","mapping":"pathname","reactions-enabled":1,"emit-metadata":0,"input-position":"top","lang":"zh-CN"};
+        var attributes = {};
+        for (let option in options) {
+          if (!option.startsWith('theme-')) {
+            var key = option.startsWith('data-') ? option : 'data-' + option;
+            attributes[key] = options[option];
+          }
+        }
+        var light = 'light';
+        var dark = 'dark';
+        window.GiscusThemeLight = light;
+        window.GiscusThemeDark = dark;
+        attributes['data-theme'] = document.documentElement.getAttribute('data-user-color-scheme') === 'dark' ? dark : light;
+        for (let attribute in attributes) {
+          var value = attributes[attribute];
+          if (value === undefined || value === null || value === '') {
+            delete attributes[attribute];
+          }
+        }
+        var s = document.createElement('script');
+        s.setAttribute('src', 'https://giscus.app/client.js');
+        s.setAttribute('crossorigin', 'anonymous');
+        for (let attribute in attributes) {
+          s.setAttribute(attribute, attributes[attribute]);
+        }
+        var ss = document.getElementsByTagName('script');
+        var e = ss.length > 0 ? ss[ss.length - 1] : document.head || document.documentElement;
+        e.parentNode.insertBefore(s, e.nextSibling);
+      });
+    </script>
+    <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    function isExpandAllEnabled() {
+      return CONFIG.toc && CONFIG.toc.expand_all === true;
+    }
+    function expandAllToc() {
+      if (!isExpandAllEnabled()) { return; }
+      jQuery('#toc-body .tocbot-is-collapsed').removeClass('tocbot-is-collapsed');
+    }
+    function updateTocToggle($li, $childList) {
+      var $toggle = $li.children('.toc-toggle');
+      if ($toggle.length === 0) { return; }
+      var collapsed = $childList.hasClass('tocbot-is-collapsed');
+      $toggle
+        .toggleClass('toc-toggle-collapsed', collapsed)
+        .toggleClass('toc-toggle-expanded', !collapsed);
+    }
+    function bindTocToggle() {
+      if (!isExpandAllEnabled()) { return; }
+      jQuery('#toc-body .toc-list-item').each(function() {
+        var $li = jQuery(this);
+        var $childList = $li.children('ol');
+        if ($childList.length === 0) {
+          if ($li.children('.toc-toggle').length === 0) {
+            $li.prepend('<span class="toc-toggle toc-toggle-placeholder" aria-hidden="true">›</span>');
+          }
+          return;
+        }
+
+        if ($li.children('.toc-toggle').length === 0) {
+          $li.prepend('<span class="toc-toggle toc-toggle-expanded" aria-hidden="true">›</span>');
+        }
+        updateTocToggle($li, $childList);
+      });
+      jQuery('#toc-body').off('click.tocToggle').on('click.tocToggle', '.toc-toggle', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var $li = jQuery(this).parent('.toc-list-item');
+        var $childList = $li.children('ol');
+        if ($childList.length === 0) { return; }
+        $childList.toggleClass('tocbot-is-collapsed');
+        updateTocToggle($li, $childList);
+      });
+      if (!window.__tocToggleObserver) {
+        window.__tocToggleObserver = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.type !== 'attributes' || mutation.attributeName !== 'class') { return; }
+            var $list = jQuery(mutation.target);
+            var $li = $list.parent('.toc-list-item');
+            if ($li.length === 0) { return; }
+            updateTocToggle($li, $list);
+          });
+        });
+        jQuery('#toc-body ol').each(function() {
+          window.__tocToggleObserver.observe(this, { attributes: true });
+        });
+      }
+    }
+    var tocConfig = Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc);
+    if (isExpandAllEnabled()) {
+      tocConfig.collapseDepth = 6;
+    }
+    window.tocbot.init(tocConfig);
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+    expandAllToc();
+    bindTocToggle();
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+        expandAllToc();
+        bindTocToggle();
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

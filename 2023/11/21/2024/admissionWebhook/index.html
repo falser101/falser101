@@ -1,0 +1,934 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="falser101">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="原文链接 什么是准入 Webhook？准入 Webhook 是一种用于接收准入请求并对其进行处理的 HTTP 回调机制。 可以定义两种类型的准入 Webhook， 即验证性质的准入 Webhook 和变更性质的准入 Webhook。 变更性质的准入 Webhook 会先被调用。它们可以修改发送到 API 服务器的对象以执行自定义的设置默认值操作。 在完成了所有对象修改并且 API 服务器也验证了所">
+<meta property="og:type" content="article">
+<meta property="og:title" content="admissionWebhook">
+<meta property="og:url" content="https://falser101.github.io/2023/11/21/2024/admissionWebhook/index.html">
+<meta property="og:site_name" content="Falser&#39;s Blog">
+<meta property="og:description" content="原文链接 什么是准入 Webhook？准入 Webhook 是一种用于接收准入请求并对其进行处理的 HTTP 回调机制。 可以定义两种类型的准入 Webhook， 即验证性质的准入 Webhook 和变更性质的准入 Webhook。 变更性质的准入 Webhook 会先被调用。它们可以修改发送到 API 服务器的对象以执行自定义的设置默认值操作。 在完成了所有对象修改并且 API 服务器也验证了所">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2023-11-20T16:00:00.000Z">
+<meta property="article:modified_time" content="2026-07-27T09:08:39.018Z">
+<meta property="article:author" content="Falser">
+<meta property="article:tag" content="admissionWebhook">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>admissionWebhook - Falser&#39;s Blog</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"falser101.github.io","root":"/","version":"1.9.9","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"expand_all":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"openkounter":{"server_url":"https://open-kounter.mintimate.cn","path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Falser&#39;s Blog</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content (desktop) -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- Mobile grid menu overlay -->
+<div id="mobile-grid-menu" class="d-lg-none">
+  <div class="mobile-grid-menu-inner">
+    <div class="container">
+      <div class="row">
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-home-fill"></i>
+                  <span>首页</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/archives/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-archive-fill"></i>
+                  <span>归档</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/categories/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-category-fill"></i>
+                  <span>分类</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/tags/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-tags-fill"></i>
+                  <span>标签</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/about/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-user-fill"></i>
+                  <span>关于</span>
+                </div>
+              </a>
+            </div>
+          
+        
+        
+          <div class="col-4 mobile-grid-cell" id="mobile-search-btn">
+            <a href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <div class="mobile-grid-item">
+                <i class="iconfont icon-search"></i>
+                <span>搜索</span>
+              </div>
+            </a>
+          </div>
+        
+        
+          <div class="col-4 mobile-grid-cell" id="mobile-color-toggle-btn"
+               data-label-light="开灯"
+               data-label-dark="关灯">
+            <a href="javascript:;" aria-label="Color Toggle">
+              <div class="mobile-grid-item">
+                <i class="iconfont icon-dark" id="mobile-color-toggle-icon"></i>
+                <span id="mobile-color-toggle-label">关灯</span>
+              </div>
+            </a>
+          </div>
+        
+      </div>
+    </div>
+  </div>
+</div>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="admissionWebhook"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2023-11-21 00:00" pubdate>
+          2023年11月21日 凌晨
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          14k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          120 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">admissionWebhook</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <p><a target="_blank" rel="noopener" href="https://cloudnative.to/blog/mutating-admission-webhook/#:~:text=Admission%20webhook%20%E6%98%AF%E4%B8%80%E7%A7%8D%E7%94%A8%E4%BA%8E%E6%8E%A5%E6%94%B6%E5%87%86%E5%85%A5%E8%AF%B7%E6%B1%82%E5%B9%B6%E5%AF%B9%E5%85%B6%E8%BF%9B%E8%A1%8C%E5%A4%84%E7%90%86%E7%9A%84%20HTTP%20%E5%9B%9E%E8%B0%83%E6%9C%BA%E5%88%B6%E3%80%82%20%E5%8F%AF%E4%BB%A5%E5%AE%9A%E4%B9%89%E4%B8%A4%E7%A7%8D%E7%B1%BB%E5%9E%8B%E7%9A%84%20admission%20webhook%EF%BC%8C%E5%8D%B3,%E3%80%82%20Mutating%20admission%20webhook%20%E4%BC%9A%E5%85%88%E8%A2%AB%E8%B0%83%E7%94%A8%E3%80%82%20%E5%AE%83%E4%BB%AC%E5%8F%AF%E4%BB%A5%E6%9B%B4%E6%94%B9%E5%8F%91%E9%80%81%E5%88%B0%20API%20%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%9A%84%E5%AF%B9%E8%B1%A1%E4%BB%A5%E6%89%A7%E8%A1%8C%E8%87%AA%E5%AE%9A%E4%B9%89%E7%9A%84%E8%AE%BE%E7%BD%AE%E9%BB%98%E8%AE%A4%E5%80%BC%E6%93%8D%E4%BD%9C%E3%80%82">原文链接</a></p>
+<h3 id="什么是准入-Webhook？"><a href="#什么是准入-Webhook？" class="headerlink" title="什么是准入 Webhook？"></a>什么是准入 Webhook？</h3><p>准入 Webhook 是一种用于接收准入请求并对其进行处理的 HTTP 回调机制。 可以定义两种类型的准入 Webhook， 即验证性质的准入 Webhook 和变更性质的准入 Webhook。 变更性质的准入 Webhook 会先被调用。它们可以修改发送到 API 服务器的对象以执行自定义的设置默认值操作。</p>
+<p>在完成了所有对象修改并且 API 服务器也验证了所传入的对象之后， 验证性质的 Webhook 会被调用，并通过拒绝请求的方式来强制实施自定义的策略。</p>
+<p>Kubernetes 中的准入控制 webhook 的执行流程如下：</p>
+<ol>
+<li>当用户尝试创建、修改或删除 Kubernetes 资源时，API 服务器会将请求发送到准入控制器。</li>
+<li>准入控制器会将请求发送到 webhook。</li>
+<li>webhook 会对请求进行处理，并返回一个响应。</li>
+<li>API 服务器会根据 webhook 的响应来处理请求。</li>
+</ol>
+<p>准入控制 webhook 可以分为两种类型：</p>
+<ul>
+<li><p>变更准入控制器（MutatingAdmissionWebhook）：在资源存储之前对资源进行修改。</p>
+</li>
+<li><p>验证准入控制器（ValidatingAdmissionWebhook）：在资源存储之前对资源进行验证。</p>
+</li>
+</ul>
+<p>webhook返回不同响应</p>
+<ul>
+<li>Webhook 允许请求的最简单响应示例：<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs json"><span class="hljs-punctuation">&#123;</span><br>  <span class="hljs-attr">&quot;apiVersion&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;admission.k8s.io/v1&quot;</span><span class="hljs-punctuation">,</span><br>  <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;AdmissionReview&quot;</span><span class="hljs-punctuation">,</span><br>  <span class="hljs-attr">&quot;response&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span><br>    <span class="hljs-attr">&quot;uid&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;&lt;value from request.uid&gt;&quot;</span><span class="hljs-punctuation">,</span><br>    <span class="hljs-attr">&quot;allowed&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">true</span></span><span class="hljs-punctuation">,</span><br>    <span class="hljs-attr">&quot;patchType&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;JSONPatch&quot;</span><span class="hljs-punctuation">,</span><br>    <span class="hljs-attr">&quot;patch&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;W3sib3AiOiAiYWRkIiwgInBhdGgiOiAiL3NwZWMvcmVwbGljYXMiLCAidmFsdWUiOiAzfV0=&quot;</span><br>  <span class="hljs-punctuation">&#125;</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+当允许请求时，mutating准入 Webhook 也可以选择修改传入的对象。 这是通过在响应中使用 patch 和 patchType 字段来完成的。 当前唯一支持的 patchType 是 JSONPatch，对于 patchType: JSONPatch，patch 字段包含一个以 base64 编码的 JSON patch 操作数组</li>
+</ul>
+<p>例如：设置deployment的 spec.replicas 的单个补丁操作将是 [{“op”: “add”, “path”: “&#x2F;spec&#x2F;replicas”, “value”: 3}]，如果以 Base64 形式编码，结果将是 W3sib3AiOiAiYWRkIiwgInBhdGgiOiAiL3NwZWMvcmVwbGljYXMiLCAidmFsdWUiOiAzfV0&#x3D;</p>
+<ul>
+<li>Webhook 禁止请求的最简单响应示例：<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs json"><span class="hljs-punctuation">&#123;</span><br>  <span class="hljs-attr">&quot;apiVersion&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;admission.k8s.io/v1&quot;</span><span class="hljs-punctuation">,</span><br>  <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;AdmissionReview&quot;</span><span class="hljs-punctuation">,</span><br>  <span class="hljs-attr">&quot;response&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span><br>    <span class="hljs-attr">&quot;uid&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;&lt;value from request.uid&gt;&quot;</span><span class="hljs-punctuation">,</span><br>    <span class="hljs-attr">&quot;allowed&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">false</span></span><span class="hljs-punctuation">,</span><br>    <span class="hljs-attr">&quot;status&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span><span class="hljs-comment">// 可自定义</span><br>      <span class="hljs-attr">&quot;code&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">403</span><span class="hljs-punctuation">,</span><br>      <span class="hljs-attr">&quot;message&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;You cannot do this because it is Tuesday and your name starts with A&quot;</span><br>    <span class="hljs-punctuation">&#125;</span><br>  <span class="hljs-punctuation">&#125;</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+当拒绝请求时，Webhook 可以使用 status 字段自定义 http 响应码和返回给用户的消息。 有关状态类型的详细信息，请参见 API 文档。 禁止请求的响应示例，它定制了向用户显示的 HTTP 状态码和消息</li>
+</ul>
+<h3 id="配置准入WebHook"><a href="#配置准入WebHook" class="headerlink" title="配置准入WebHook"></a>配置准入WebHook</h3><p>你可以通过 <code>ValidatingWebhookConfiguration</code> 或者 <code>MutatingWebhookConfiguration</code> 动态配置哪些资源要被哪些准入 Webhook 处理。</p>
+<p>以下是一个 <code>MutatingWebhookConfiguration</code> 示例，<code>ValidatingWebhookConfiguration Webhook</code> 配置与此类似。 有关每个配置字段的详细信息，请参阅 Webhook 配置部分。</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-attr">apiVersion:</span> <span class="hljs-string">admissionregistration.k8s.io/v1</span><br><span class="hljs-attr">kind:</span> <span class="hljs-string">MutatingWebhookConfiguration</span><br><span class="hljs-attr">metadata:</span><br>  <span class="hljs-attr">name:</span> <span class="hljs-string">&quot;pod-policy.example.com&quot;</span><br><span class="hljs-attr">webhooks:</span><br><span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">&quot;pod-policy.example.com&quot;</span><br>  <span class="hljs-attr">objectSelector:</span><br>    <span class="hljs-attr">matchLabels:</span><br>      <span class="hljs-attr">hello:</span> <span class="hljs-string">&quot;true&quot;</span><br>  <span class="hljs-attr">rules:</span><br>  <span class="hljs-bullet">-</span> <span class="hljs-attr">apiGroups:</span> [<span class="hljs-string">&quot;&quot;</span>]<br>    <span class="hljs-attr">apiVersions:</span> [<span class="hljs-string">&quot;v1&quot;</span>]<br>    <span class="hljs-attr">operations:</span> [<span class="hljs-string">&quot;CREATE&quot;</span>]<br>    <span class="hljs-attr">resources:</span> [<span class="hljs-string">&quot;pods&quot;</span>]<br>    <span class="hljs-attr">scope:</span> <span class="hljs-string">&quot;Namespaced&quot;</span><br>  <span class="hljs-attr">clientConfig:</span><br>    <span class="hljs-attr">service:</span><br>      <span class="hljs-attr">namespace:</span> <span class="hljs-string">&quot;example-namespace&quot;</span><br>      <span class="hljs-attr">name:</span> <span class="hljs-string">&quot;example-service&quot;</span><br>      <span class="hljs-attr">path:</span> <span class="hljs-string">/mutate</span><br>  <span class="hljs-attr">admissionReviewVersions:</span> [<span class="hljs-string">&quot;v1&quot;</span>]<br>  <span class="hljs-attr">sideEffects:</span> <span class="hljs-string">None</span><br>  <span class="hljs-attr">timeoutSeconds:</span> <span class="hljs-number">5</span><br></code></pre></td></tr></table></figure>
+
+<p>当一个 API 服务器收到与 rules 相匹配的请求时， 该 API 服务器将按照 clientConfig 中指定的方式向 Webhook 发送一个 admissionReview 请求。</p>
+<p>创建 Webhook 配置后，系统将花费几秒钟使新配置生效。</p>
+<p>接下来演示如何开发一个自定义Webhook API并使用</p>
+<h4 id="开发Go-API-服务端"><a href="#开发Go-API-服务端" class="headerlink" title="开发Go API 服务端"></a>开发Go API 服务端</h4><p>代码来自<a target="_blank" rel="noopener" href="https://github.com/didil/k8s-hello-mutating-webhook">Github仓库</a></p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br></pre></td><td class="code"><pre><code class="hljs golang"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(app *App)</span></span> HandleMutate(w http.ResponseWriter, r *http.Request) &#123;<br>	admissionReview := &amp;admissionv1.AdmissionReview&#123;&#125;<br><br>	<span class="hljs-comment">// read the AdmissionReview from the request json body</span><br>	err := readJSON(r, admissionReview)<br>	<span class="hljs-keyword">if</span> err != <span class="hljs-literal">nil</span> &#123;<br>		app.HandleError(w, r, err)<br>		<span class="hljs-keyword">return</span><br>	&#125;<br><br>	<span class="hljs-comment">// unmarshal the pod from the AdmissionRequest</span><br>	pod := &amp;corev1.Pod&#123;&#125;<br>	<span class="hljs-keyword">if</span> err := json.Unmarshal(admissionReview.Request.Object.Raw, pod); err != <span class="hljs-literal">nil</span> &#123;<br>		app.HandleError(w, r, fmt.Errorf(<span class="hljs-string">&quot;unmarshal to pod: %v&quot;</span>, err))<br>		<span class="hljs-keyword">return</span><br>	&#125;<br><br>	<span class="hljs-comment">// add the volume to the pod</span><br>	pod.Spec.Volumes = <span class="hljs-built_in">append</span>(pod.Spec.Volumes, corev1.Volume&#123;<br>		Name: <span class="hljs-string">&quot;hello-volume&quot;</span>,<br>		VolumeSource: corev1.VolumeSource&#123;<br>			ConfigMap: &amp;corev1.ConfigMapVolumeSource&#123;<br>				LocalObjectReference: corev1.LocalObjectReference&#123;<br>					Name: <span class="hljs-string">&quot;hello-configmap&quot;</span>,<br>				&#125;,<br>			&#125;,<br>		&#125;,<br>	&#125;)<br><br>	<span class="hljs-comment">// add volume mount to all containers in the pod</span><br>	<span class="hljs-keyword">for</span> i := <span class="hljs-number">0</span>; i &lt; <span class="hljs-built_in">len</span>(pod.Spec.Containers); i++ &#123;<br>		pod.Spec.Containers[i].VolumeMounts = <span class="hljs-built_in">append</span>(pod.Spec.Containers[i].VolumeMounts, corev1.VolumeMount&#123;<br>			Name:      <span class="hljs-string">&quot;hello-volume&quot;</span>,<br>			MountPath: <span class="hljs-string">&quot;/etc/config&quot;</span>,<br>		&#125;)<br>	&#125;<br><br>	containersBytes, err := json.Marshal(&amp;pod.Spec.Containers)<br>	<span class="hljs-keyword">if</span> err != <span class="hljs-literal">nil</span> &#123;<br>		app.HandleError(w, r, fmt.Errorf(<span class="hljs-string">&quot;marshall containers: %v&quot;</span>, err))<br>		<span class="hljs-keyword">return</span><br>	&#125;<br><br>	volumesBytes, err := json.Marshal(&amp;pod.Spec.Volumes)<br>	<span class="hljs-keyword">if</span> err != <span class="hljs-literal">nil</span> &#123;<br>		app.HandleError(w, r, fmt.Errorf(<span class="hljs-string">&quot;marshall volumes: %v&quot;</span>, err))<br>		<span class="hljs-keyword">return</span><br>	&#125;<br><br>	<span class="hljs-comment">// build json patch</span><br>	patch := []JSONPatchEntry&#123;<br>		&#123;<br>			OP:    <span class="hljs-string">&quot;add&quot;</span>,<br>			Path:  <span class="hljs-string">&quot;/metadata/labels/hello-added&quot;</span>,<br>			Value: []<span class="hljs-type">byte</span>(<span class="hljs-string">`&quot;OK&quot;`</span>),<br>		&#125;,<br>		&#123;<br>			OP:    <span class="hljs-string">&quot;replace&quot;</span>,<br>			Path:  <span class="hljs-string">&quot;/spec/containers&quot;</span>,<br>			Value: containersBytes,<br>		&#125;,<br>		&#123;<br>			OP:    <span class="hljs-string">&quot;replace&quot;</span>,<br>			Path:  <span class="hljs-string">&quot;/spec/volumes&quot;</span>,<br>			Value: volumesBytes,<br>		&#125;,<br>	&#125;<br><br>	patchBytes, err := json.Marshal(&amp;patch)<br>	<span class="hljs-keyword">if</span> err != <span class="hljs-literal">nil</span> &#123;<br>		app.HandleError(w, r, fmt.Errorf(<span class="hljs-string">&quot;marshall jsonpatch: %v&quot;</span>, err))<br>		<span class="hljs-keyword">return</span><br>	&#125;<br><br>	patchType := admissionv1.PatchTypeJSONPatch<br><br>	<span class="hljs-comment">// build admission response</span><br>	admissionResponse := &amp;admissionv1.AdmissionResponse&#123;<br>		UID:       admissionReview.Request.UID,<br>		Allowed:   <span class="hljs-literal">true</span>,<br>		Patch:     patchBytes,<br>		PatchType: &amp;patchType,<br>	&#125;<br><br>	respAdmissionReview := &amp;admissionv1.AdmissionReview&#123;<br>		TypeMeta: metav1.TypeMeta&#123;<br>			Kind:       <span class="hljs-string">&quot;AdmissionReview&quot;</span>,<br>			APIVersion: <span class="hljs-string">&quot;admission.k8s.io/v1&quot;</span>,<br>		&#125;,<br>		Response: admissionResponse,<br>	&#125;<br><br>	jsonOk(w, &amp;respAdmissionReview)<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>上述代码主要做了以下事情：</p>
+<ol>
+<li>将来自 Http 请求中的 AdmissionReview json 输入反序列化。</li>
+<li>读取 Pod 的 spec 信息。</li>
+<li>将 hello-configmap 作为数据源，添加 hello-volume 卷到 Pod。</li>
+<li>挂载卷至 Pod 容器中。</li>
+<li>以 JSON PATCH 的形式记录变更信息，包括卷的变更，卷挂载信息的变更。顺道为容器添加一个“hello-added&#x3D;true”的标签。</li>
+<li>构建 json 格式的响应结果，结果中包含了这次请求中的被修改的部分。</li>
+</ol>
+<h4 id="创建k8s资源"><a href="#创建k8s资源" class="headerlink" title="创建k8s资源"></a>创建k8s资源</h4><p>在webhook项目下执行</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs shell"><span class="hljs-meta prompt_">$ </span><span class="language-bash">kubectl apply -k k8s/deployment</span><br><span class="hljs-meta prompt_">#</span><span class="language-bash"><span class="hljs-comment"># 日志</span></span><br>configmap/hello-configmap created<br>service/hello-webhook-service created<br>mutatingwebhookconfiguration.admissionregistration.k8s.io/hello-webhook.leclouddev.com created<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_">$ </span><span class="language-bash">kubectl apply -k k8s/other</span><br><span class="hljs-meta prompt_">#</span><span class="language-bash"><span class="hljs-comment"># 日志</span></span><br>configmap/hello-configmap created<br>service/hello-webhook-service created<br>mutatingwebhookconfiguration.admissionregistration.k8s.io/hello-webhook.leclouddev.com created<br></code></pre></td></tr></table></figure>
+<h4 id="生成TLS证书"><a href="#生成TLS证书" class="headerlink" title="生成TLS证书"></a>生成TLS证书</h4><p>Webhook API 服务器需要通过 TLS 方式通信。如果想将其部署至 Kubernetes 集群内，我们还需要证书。原作者的仓库使用的kubectl版本较低，原作者是通过job生成pod来生成相关证书的，我们可以直接执行脚本来生成，脚本内容如下：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br></pre></td><td class="code"><pre><code class="hljs sh"><span class="hljs-meta">#!/usr/bin/env sh</span><br><br><span class="hljs-built_in">set</span> -e<br><br><span class="hljs-function"><span class="hljs-title">usage</span></span>() &#123;<br>  <span class="hljs-built_in">cat</span> &lt;&lt;<span class="hljs-string">EOF</span><br><span class="hljs-string">Generate certificate suitable for use with any Kubernetes Mutating Webhook.</span><br><span class="hljs-string">This script uses k8s&#x27; CertificateSigningRequest API to a generate a</span><br><span class="hljs-string">certificate signed by k8s CA suitable for use with any Kubernetes Mutating Webhook service pod.</span><br><span class="hljs-string">This requires permissions to create and approve CSR. See</span><br><span class="hljs-string">https://kubernetes.io/docs/tasks/tls/managing-tls-in-a-cluster for</span><br><span class="hljs-string">detailed explantion and additional instructions.</span><br><span class="hljs-string">The server key/cert k8s CA cert are stored in a k8s secret.</span><br><span class="hljs-string">usage: $&#123;0&#125; [OPTIONS]</span><br><span class="hljs-string">The following flags are required.</span><br><span class="hljs-string">    --service          Service name of webhook.</span><br><span class="hljs-string">    --webhook          Webhook config name.</span><br><span class="hljs-string">    --namespace        Namespace where webhook service and secret reside.</span><br><span class="hljs-string">    --secret           Secret name for CA certificate and server certificate/key pair.</span><br><span class="hljs-string">The following flags are optional.</span><br><span class="hljs-string">    --webhook-kind     Webhook kind, either MutatingWebhookConfiguration or</span><br><span class="hljs-string">                       ValidatingWebhookConfiguration (defaults to MutatingWebhookConfiguration)</span><br><span class="hljs-string">EOF</span><br>  <span class="hljs-built_in">exit</span> 1<br>&#125;<br><br><span class="hljs-keyword">while</span> [ <span class="hljs-variable">$#</span># -gt 0 ]; <span class="hljs-keyword">do</span><br>  <span class="hljs-keyword">case</span> <span class="hljs-variable">$&#123;1&#125;</span> <span class="hljs-keyword">in</span><br>      --service)<br>          service=<span class="hljs-string">&quot;<span class="hljs-variable">$2</span>&quot;</span><br>          <span class="hljs-built_in">shift</span><br>          ;;<br>      --webhook)<br>          webhook=<span class="hljs-string">&quot;<span class="hljs-variable">$2</span>&quot;</span><br>          <span class="hljs-built_in">shift</span><br>          ;;<br>      --secret)<br>          secret=<span class="hljs-string">&quot;<span class="hljs-variable">$2</span>&quot;</span><br>          <span class="hljs-built_in">shift</span><br>          ;;<br>      --namespace)<br>          namespace=<span class="hljs-string">&quot;<span class="hljs-variable">$2</span>&quot;</span><br>          <span class="hljs-built_in">shift</span><br>          ;;<br>      --webhook-kind)<br>          kind=<span class="hljs-string">&quot;<span class="hljs-variable">$2</span>&quot;</span><br>          <span class="hljs-built_in">shift</span><br>          ;;<br>      *)<br>          usage<br>          ;;<br>  <span class="hljs-keyword">esac</span><br>  <span class="hljs-built_in">shift</span><br><span class="hljs-keyword">done</span><br><br>[ -z <span class="hljs-string">&quot;<span class="hljs-variable">$&#123;service&#125;</span>&quot;</span> ] &amp;&amp; <span class="hljs-built_in">echo</span> <span class="hljs-string">&quot;ERROR: --service flag is required&quot;</span> &amp;&amp; <span class="hljs-built_in">exit</span> 1<br>[ -z <span class="hljs-string">&quot;<span class="hljs-variable">$&#123;webhook&#125;</span>&quot;</span> ] &amp;&amp; <span class="hljs-built_in">echo</span> <span class="hljs-string">&quot;ERROR: --webhook flag is required&quot;</span> &amp;&amp; <span class="hljs-built_in">exit</span> 1<br>[ -z <span class="hljs-string">&quot;<span class="hljs-variable">$&#123;secret&#125;</span>&quot;</span> ] &amp;&amp; <span class="hljs-built_in">echo</span> <span class="hljs-string">&quot;ERROR: --secret flag is required&quot;</span> &amp;&amp; <span class="hljs-built_in">exit</span> 1<br>[ -z <span class="hljs-string">&quot;<span class="hljs-variable">$&#123;namespace&#125;</span>&quot;</span> ] &amp;&amp; <span class="hljs-built_in">echo</span> <span class="hljs-string">&quot;ERROR: --namespace flag is required&quot;</span> &amp;&amp; <span class="hljs-built_in">exit</span> 1<br><br>fullServiceDomain=<span class="hljs-string">&quot;<span class="hljs-variable">$&#123;service&#125;</span>.<span class="hljs-variable">$&#123;namespace&#125;</span>.svc&quot;</span><br><br><span class="hljs-comment">## THE CN has a limit of 64 characters. We could remove the namespace and svc</span><br><span class="hljs-comment">## and rely on the Subject Alternative Name (SAN), but there is a bug in EKS</span><br><span class="hljs-comment">## that discards the SAN when signing the certificates.</span><br><span class="hljs-comment">#</span><br><span class="hljs-comment">## https://github.com/awslabs/amazon-eks-ami/issues/341</span><br><span class="hljs-keyword">if</span> [ <span class="hljs-variable">$&#123;#fullServiceDomain&#125;</span> -gt 64 ] ; <span class="hljs-keyword">then</span><br>  <span class="hljs-built_in">echo</span> <span class="hljs-string">&quot;ERROR: common name exceeds the 64 character limit: <span class="hljs-variable">$&#123;fullServiceDomain&#125;</span>&quot;</span><br>  <span class="hljs-built_in">exit</span> 1<br><span class="hljs-keyword">fi</span><br><br><span class="hljs-keyword">if</span> [ ! -x <span class="hljs-string">&quot;<span class="hljs-subst">$(command -v openssl)</span>&quot;</span> ]; <span class="hljs-keyword">then</span><br>  <span class="hljs-built_in">echo</span> <span class="hljs-string">&quot;ERROR: openssl not found&quot;</span><br>  <span class="hljs-built_in">exit</span> 1<br><span class="hljs-keyword">fi</span><br><br>csrName=<span class="hljs-variable">$&#123;service&#125;</span>.<span class="hljs-variable">$&#123;namespace&#125;</span><br>tmpdir=$(<span class="hljs-built_in">mktemp</span> -d)<br><span class="hljs-built_in">echo</span> <span class="hljs-string">&quot;creating certs in tmpdir <span class="hljs-variable">$&#123;tmpdir&#125;</span> &quot;</span><br><br><span class="hljs-built_in">cat</span> &lt;&lt;<span class="hljs-string">EOF &gt;&gt; &quot;$&#123;tmpdir&#125;/csr.conf&quot;</span><br><span class="hljs-string">[req]</span><br><span class="hljs-string">req_extensions = v3_req</span><br><span class="hljs-string">distinguished_name = req_distinguished_name</span><br><span class="hljs-string">[req_distinguished_name]</span><br><span class="hljs-string">[ v3_req ]</span><br><span class="hljs-string">basicConstraints = CA:FALSE</span><br><span class="hljs-string">keyUsage = nonRepudiation, digitalSignature, keyEncipherment</span><br><span class="hljs-string">extendedKeyUsage = serverAuth</span><br><span class="hljs-string">subjectAltName = @alt_names</span><br><span class="hljs-string">[alt_names]</span><br><span class="hljs-string">DNS.1 = $&#123;service&#125;</span><br><span class="hljs-string">DNS.2 = $&#123;service&#125;.$&#123;namespace&#125;</span><br><span class="hljs-string">DNS.3 = $&#123;fullServiceDomain&#125;</span><br><span class="hljs-string">DNS.4 = $&#123;fullServiceDomain&#125;.cluster.local</span><br><span class="hljs-string">EOF</span><br><span class="hljs-built_in">echo</span> <span class="hljs-string">&quot;/CN=<span class="hljs-variable">$&#123;fullServiceDomain&#125;</span>&quot;</span><br>openssl genrsa -out <span class="hljs-string">&quot;<span class="hljs-variable">$&#123;tmpdir&#125;</span>/server-key.pem&quot;</span> 2048<br><span class="hljs-comment">#openssl req -new -key &quot;$&#123;tmpdir&#125;/server-key.pem&quot; -subj &quot;/CN=$&#123;fullServiceDomain&#125;&quot; -out &quot;$&#123;tmpdir&#125;/server.csr&quot; -config &quot;$&#123;tmpdir&#125;/csr.conf&quot;</span><br>openssl req -new -key <span class="hljs-string">&quot;<span class="hljs-variable">$&#123;tmpdir&#125;</span>/server-key.pem&quot;</span> -subj <span class="hljs-string">&quot;/CN=system:node:<span class="hljs-variable">$&#123;fullServiceDomain&#125;</span>;/O=system:nodes&quot;</span> -out <span class="hljs-string">&quot;<span class="hljs-variable">$&#123;tmpdir&#125;</span>/server.csr&quot;</span> -config <span class="hljs-string">&quot;<span class="hljs-variable">$&#123;tmpdir&#125;</span>/csr.conf&quot;</span><br><span class="hljs-built_in">set</span> +e<br><span class="hljs-comment">## clean-up any previously created CSR for our service. Ignore errors if not present.</span><br><span class="hljs-keyword">if</span> kubectl delete csr <span class="hljs-string">&quot;<span class="hljs-variable">$&#123;csrName&#125;</span>&quot;</span>; <span class="hljs-keyword">then</span><br>    <span class="hljs-built_in">echo</span> <span class="hljs-string">&quot;WARN: Previous CSR was found and removed.&quot;</span><br><span class="hljs-keyword">fi</span><br><span class="hljs-built_in">set</span> -e<br><br><span class="hljs-comment">## create server cert/key CSR and send it to k8s api</span><br><span class="hljs-built_in">cat</span> &lt;&lt;<span class="hljs-string">EOF | kubectl create -f -</span><br><span class="hljs-string">apiVersion: certificates.k8s.io/v1</span><br><span class="hljs-string">kind: CertificateSigningRequest</span><br><span class="hljs-string">metadata:</span><br><span class="hljs-string">  name: $&#123;csrName&#125;</span><br><span class="hljs-string">spec:</span><br><span class="hljs-string">  #signerName: kubernetes.io/kube-apiserver-client</span><br><span class="hljs-string">  signerName: kubernetes.io/kubelet-serving</span><br><span class="hljs-string">  groups:</span><br><span class="hljs-string">  - system:authenticated</span><br><span class="hljs-string">  request: $(base64 &lt; &quot;$&#123;tmpdir&#125;/server.csr&quot; | tr -d &#x27;\n&#x27;)</span><br><span class="hljs-string">  usages:</span><br><span class="hljs-string">  - server auth</span><br><span class="hljs-string">  - digital signature</span><br><span class="hljs-string">  - key encipherment</span><br><span class="hljs-string">EOF</span><br><br><span class="hljs-built_in">set</span> +e<br><span class="hljs-comment">## verify CSR has been created</span><br><span class="hljs-keyword">while</span> <span class="hljs-literal">true</span>; <span class="hljs-keyword">do</span><br>  <span class="hljs-keyword">if</span> kubectl get csr <span class="hljs-string">&quot;<span class="hljs-variable">$&#123;csrName&#125;</span>&quot;</span>; <span class="hljs-keyword">then</span><br>      <span class="hljs-built_in">echo</span> <span class="hljs-string">&quot;CertificateSigningRequest create succsee&quot;</span><br>      <span class="hljs-built_in">break</span><br>  <span class="hljs-keyword">fi</span><br><span class="hljs-keyword">done</span><br><span class="hljs-built_in">set</span> -e<br><br><span class="hljs-comment">## approve and fetch the signed certificate . !! not working with k8s 1.19.1, running the command separately outside of the container / node</span><br><span class="hljs-built_in">set</span> +e<br><span class="hljs-keyword">while</span> <span class="hljs-literal">true</span>; <span class="hljs-keyword">do</span><br>  <span class="hljs-keyword">if</span> kubectl certificate approve <span class="hljs-string">&quot;<span class="hljs-variable">$&#123;csrName&#125;</span>&quot;</span>; <span class="hljs-keyword">then</span><br>     <span class="hljs-built_in">echo</span> <span class="hljs-string">&quot;<span class="hljs-variable">$&#123;csrName&#125;</span> certificate approve&quot;</span><br>     <span class="hljs-built_in">break</span><br>  <span class="hljs-keyword">fi</span><br><span class="hljs-keyword">done</span><br><br><span class="hljs-built_in">set</span> -e<br><br><span class="hljs-built_in">set</span> +e<br><span class="hljs-comment">## verify certificate has been signed</span><br>i=1<br><span class="hljs-keyword">while</span> [ <span class="hljs-string">&quot;<span class="hljs-variable">$i</span>&quot;</span> -ne 10 ]<br><span class="hljs-keyword">do</span><br>  serverCert=$(kubectl get csr <span class="hljs-string">&quot;<span class="hljs-variable">$&#123;csrName&#125;</span>&quot;</span> -o jsonpath=<span class="hljs-string">&#x27;&#123;.status.certificate&#125;&#x27;</span>)<br>  <span class="hljs-keyword">if</span> [ <span class="hljs-string">&quot;<span class="hljs-variable">$&#123;serverCert&#125;</span>&quot;</span> != <span class="hljs-string">&#x27;&#x27;</span> ]; <span class="hljs-keyword">then</span><br>      <span class="hljs-built_in">break</span><br>  <span class="hljs-keyword">fi</span><br>  <span class="hljs-built_in">sleep</span> 5<br>  i=$((i + <span class="hljs-number">1</span>))<br><span class="hljs-keyword">done</span><br><br><span class="hljs-built_in">set</span> -e<br><span class="hljs-keyword">if</span> [ <span class="hljs-string">&quot;<span class="hljs-variable">$&#123;serverCert&#125;</span>&quot;</span> = <span class="hljs-string">&#x27;&#x27;</span> ]; <span class="hljs-keyword">then</span><br>  <span class="hljs-built_in">echo</span> <span class="hljs-string">&quot;ERROR: After approving csr <span class="hljs-variable">$&#123;csrName&#125;</span>, the signed certificate did not appear on the resource. Giving up after 10 attempts.&quot;</span> &gt;&amp;2<br>  <span class="hljs-built_in">exit</span> 1<br><span class="hljs-keyword">fi</span><br><br><span class="hljs-built_in">echo</span> <span class="hljs-string">&quot;<span class="hljs-variable">$&#123;serverCert&#125;</span>&quot;</span> | openssl <span class="hljs-built_in">base64</span> -d -A -out <span class="hljs-string">&quot;<span class="hljs-variable">$&#123;tmpdir&#125;</span>/server-cert.pem&quot;</span><br><br><span class="hljs-comment">## create the secret with CA cert and server cert/key</span><br>kubectl create secret tls <span class="hljs-string">&quot;<span class="hljs-variable">$&#123;secret&#125;</span>&quot;</span> \<br>      --key=<span class="hljs-string">&quot;<span class="hljs-variable">$&#123;tmpdir&#125;</span>/server-key.pem&quot;</span> \<br>      --cert=<span class="hljs-string">&quot;<span class="hljs-variable">$&#123;tmpdir&#125;</span>/server-cert.pem&quot;</span> \<br>      --dry-run -o yaml |<br>  kubectl -n <span class="hljs-string">&quot;<span class="hljs-variable">$&#123;namespace&#125;</span>&quot;</span> apply -f -<br><br><span class="hljs-comment">#caBundle=$(base64 &lt; /run/secrets/kubernetes.io/serviceaccount/ca.crt  | tr -d &#x27;\n&#x27;)</span><br>caBundle=$(<span class="hljs-built_in">cat</span> <span class="hljs-variable">$&#123;tmpdir&#125;</span>/server-cert.pem)<br><span class="hljs-built_in">set</span> +e<br><span class="hljs-comment">## Patch the webhook adding the caBundle. It uses an `add` operation to avoid errors in OpenShift because it doesn&#x27;t set</span><br><span class="hljs-comment">## a default value of empty string like Kubernetes. Instead, it doesn&#x27;t create the caBundle key.</span><br><span class="hljs-comment">## As the webhook is not created yet (the process should be done manually right after this job is created),</span><br><span class="hljs-comment">## the job will not end until the webhook is patched.</span><br><span class="hljs-keyword">while</span> <span class="hljs-literal">true</span>; <span class="hljs-keyword">do</span><br>  <span class="hljs-built_in">echo</span> <span class="hljs-string">&quot;INFO: Trying to patch webhook adding the caBundle.&quot;</span><br>  <span class="hljs-keyword">if</span> kubectl patch <span class="hljs-string">&quot;<span class="hljs-variable">$&#123;kind:-mutatingwebhookconfiguration&#125;</span>&quot;</span> <span class="hljs-string">&quot;<span class="hljs-variable">$&#123;webhook&#125;</span>&quot;</span> --<span class="hljs-built_in">type</span>=<span class="hljs-string">&#x27;json&#x27;</span> -p <span class="hljs-string">&quot;[&#123;&#x27;op&#x27;: &#x27;add&#x27;, &#x27;path&#x27;: &#x27;/webhooks/0/clientConfig/caBundle&#x27;, &#x27;value&#x27;:&#x27;<span class="hljs-variable">$&#123;serverCert&#125;</span>&#x27;&#125;]&quot;</span>; <span class="hljs-keyword">then</span><br>      <span class="hljs-built_in">break</span><br>  <span class="hljs-keyword">fi</span><br>  <span class="hljs-built_in">echo</span> <span class="hljs-string">&quot;INFO: webhook not patched. Retrying in 5s...&quot;</span><br>  <span class="hljs-built_in">sleep</span> 5<br><span class="hljs-keyword">done</span><br></code></pre></td></tr></table></figure>
+
+<p>执行脚本生成证书：</p>
+<ul>
+<li>–service：对应webhook api服务的service name</li>
+<li>–webhook：我们创建的MutatingWebhookConfiguration的webhooks的name</li>
+<li>–secret：我们的webhook api服务pod所需要挂载的secret的名称</li>
+<li>–namespace：命名空间</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs shell">./generate_certificate.sh  --service hello-webhook-service --webhook hello-webhook.leclouddev.com --secret hello-tls-secret --namespace default<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><code class="hljs shell"><span class="hljs-meta prompt_">#</span><span class="language-bash"><span class="hljs-comment"># 输出日志</span></span><br>creating certs in tmpdir /var/folders/m6/11gz2m9x1m11lkts0h83x8800000gn/T/tmp.ebrOVBA0 <br>/CN=hello-webhook-service.default.svc<br>Error from server (NotFound): certificatesigningrequests.certificates.k8s.io &quot;hello-webhook-service.default&quot; not found<br>certificatesigningrequest.certificates.k8s.io/hello-webhook-service.default created<br>NAME                            AGE   SIGNERNAME                      REQUESTOR          REQUESTEDDURATION   CONDITION<br>hello-webhook-service.default   0s    kubernetes.io/kubelet-serving   kubernetes-admin   &lt;none&gt;              Pending<br>CertificateSigningRequest create succsee<br>certificatesigningrequest.certificates.k8s.io/hello-webhook-service.default approved<br>hello-webhook-service.default certificate approve<br>W1122 10:40:41.297220   55111 helpers.go:692] --dry-run is deprecated and can be replaced with --dry-run=client.<br>secret/hello-tls-secret configured<br>INFO: Trying to patch webhook adding the caBundle.<br>mutatingwebhookconfiguration.admissionregistration.k8s.io/hello-webhook.leclouddev.com patched<br></code></pre></td></tr></table></figure>
+
+<h4 id="创建一个带hello-true标签的pod"><a href="#创建一个带hello-true标签的pod" class="headerlink" title="创建一个带hello&#x3D;true标签的pod"></a>创建一个带hello&#x3D;true标签的pod</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs shell">kubectl run busybox-1 --image=busybox  --restart=Never -l=app=busybox,hello=true -- sleep 3600<br></code></pre></td></tr></table></figure>
+
+<p>查看webhook api的pod日志</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs shell">kubectl logs hello-webhook-deployment-5957bbb8bf-mkrzv<br></code></pre></td></tr></table></figure>
+
+<p>输出日志</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs shell">Listening on port 8000<br>2023/11/22 02:46:16 [hello-webhook-deployment-5957bbb8bf-mkrzv/JbYpz7vK1i-000001] &quot;POST https://hello-webhook-service.default.svc:443/mutate?timeout=10s HTTP/1.1&quot; from 10.244.235.192:46335 - 200 1393B in 1.844861ms<br></code></pre></td></tr></table></figure>
+
+<p>查看busybox-1的volume,可以看到cm已经挂载进去了</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-attr">volumes:</span><br><span class="hljs-bullet">-</span> <span class="hljs-attr">configMap:</span><br>    <span class="hljs-attr">defaultMode:</span> <span class="hljs-number">420</span><br>    <span class="hljs-attr">name:</span> <span class="hljs-string">hello-configmap</span><br>  <span class="hljs-attr">name:</span> <span class="hljs-string">hello-volume</span><br></code></pre></td></tr></table></figure>
+
+<h4 id="创建一个不带hello-true标签的则不会挂载"><a href="#创建一个不带hello-true标签的则不会挂载" class="headerlink" title="创建一个不带hello&#x3D;true标签的则不会挂载"></a>创建一个不带hello&#x3D;true标签的则不会挂载</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs shell">kubectl run busybox-2 --image=busybox --restart=Never -l=app=busybox -- sleep 3600<br></code></pre></td></tr></table></figure>
+<p>查看busybox-2的yaml并没有对应的volume</p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/k8s/" class="category-chain-item">k8s</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/admissionWebhook/" class="print-no-link">#admissionWebhook</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>admissionWebhook</div>
+      <div>https://falser101.github.io/2023/11/21/2024/admissionWebhook/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>falser101</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2023年11月21日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2024/01/10/2024/broker%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B/" title="pulsar broker组件启动流程">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">pulsar broker组件启动流程</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2023/10/17/2023/sed%E4%B8%AD%E4%BD%BF%E7%94%A8%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F/" title="sed中使用环境变量">
+                        <span class="hidden-mobile">sed中使用环境变量</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+    <div id="giscus" class="giscus"></div>
+    <script type="text/javascript">
+      Fluid.utils.loadComments('#giscus', function() {
+        var options = {"repo":"falser101/falser101.github.io","repo-id":"R_kgDOMveGqw","category":"Announcements","category-id":"DIC_kwDOMveGq84ClgWQ","theme-light":"light","theme-dark":"dark","mapping":"pathname","reactions-enabled":1,"emit-metadata":0,"input-position":"top","lang":"zh-CN"};
+        var attributes = {};
+        for (let option in options) {
+          if (!option.startsWith('theme-')) {
+            var key = option.startsWith('data-') ? option : 'data-' + option;
+            attributes[key] = options[option];
+          }
+        }
+        var light = 'light';
+        var dark = 'dark';
+        window.GiscusThemeLight = light;
+        window.GiscusThemeDark = dark;
+        attributes['data-theme'] = document.documentElement.getAttribute('data-user-color-scheme') === 'dark' ? dark : light;
+        for (let attribute in attributes) {
+          var value = attributes[attribute];
+          if (value === undefined || value === null || value === '') {
+            delete attributes[attribute];
+          }
+        }
+        var s = document.createElement('script');
+        s.setAttribute('src', 'https://giscus.app/client.js');
+        s.setAttribute('crossorigin', 'anonymous');
+        for (let attribute in attributes) {
+          s.setAttribute(attribute, attributes[attribute]);
+        }
+        var ss = document.getElementsByTagName('script');
+        var e = ss.length > 0 ? ss[ss.length - 1] : document.head || document.documentElement;
+        e.parentNode.insertBefore(s, e.nextSibling);
+      });
+    </script>
+    <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    function isExpandAllEnabled() {
+      return CONFIG.toc && CONFIG.toc.expand_all === true;
+    }
+    function expandAllToc() {
+      if (!isExpandAllEnabled()) { return; }
+      jQuery('#toc-body .tocbot-is-collapsed').removeClass('tocbot-is-collapsed');
+    }
+    function updateTocToggle($li, $childList) {
+      var $toggle = $li.children('.toc-toggle');
+      if ($toggle.length === 0) { return; }
+      var collapsed = $childList.hasClass('tocbot-is-collapsed');
+      $toggle
+        .toggleClass('toc-toggle-collapsed', collapsed)
+        .toggleClass('toc-toggle-expanded', !collapsed);
+    }
+    function bindTocToggle() {
+      if (!isExpandAllEnabled()) { return; }
+      jQuery('#toc-body .toc-list-item').each(function() {
+        var $li = jQuery(this);
+        var $childList = $li.children('ol');
+        if ($childList.length === 0) {
+          if ($li.children('.toc-toggle').length === 0) {
+            $li.prepend('<span class="toc-toggle toc-toggle-placeholder" aria-hidden="true">›</span>');
+          }
+          return;
+        }
+
+        if ($li.children('.toc-toggle').length === 0) {
+          $li.prepend('<span class="toc-toggle toc-toggle-expanded" aria-hidden="true">›</span>');
+        }
+        updateTocToggle($li, $childList);
+      });
+      jQuery('#toc-body').off('click.tocToggle').on('click.tocToggle', '.toc-toggle', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var $li = jQuery(this).parent('.toc-list-item');
+        var $childList = $li.children('ol');
+        if ($childList.length === 0) { return; }
+        $childList.toggleClass('tocbot-is-collapsed');
+        updateTocToggle($li, $childList);
+      });
+      if (!window.__tocToggleObserver) {
+        window.__tocToggleObserver = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.type !== 'attributes' || mutation.attributeName !== 'class') { return; }
+            var $list = jQuery(mutation.target);
+            var $li = $list.parent('.toc-list-item');
+            if ($li.length === 0) { return; }
+            updateTocToggle($li, $list);
+          });
+        });
+        jQuery('#toc-body ol').each(function() {
+          window.__tocToggleObserver.observe(this, { attributes: true });
+        });
+      }
+    }
+    var tocConfig = Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc);
+    if (isExpandAllEnabled()) {
+      tocConfig.collapseDepth = 6;
+    }
+    window.tocbot.init(tocConfig);
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+    expandAllToc();
+    bindTocToggle();
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+        expandAllToc();
+        bindTocToggle();
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

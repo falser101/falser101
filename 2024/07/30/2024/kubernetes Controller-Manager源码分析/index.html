@@ -1,0 +1,885 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="falser101">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="Kubernetes controller-manager 关于ControllerManager 官方介绍的很详细了,可查看官方文档 Controller Manager,下面是我对controller-manager源码阅读总结  入口 入口: cmd&#x2F;kube-controller-manager&#x2F;controller-manager.go  12345func main">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Kubernetes controller-manager源码学习">
+<meta property="og:url" content="https://falser101.github.io/2024/07/30/2024/kubernetes%20Controller-Manager%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/index.html">
+<meta property="og:site_name" content="Falser&#39;s Blog">
+<meta property="og:description" content="Kubernetes controller-manager 关于ControllerManager 官方介绍的很详细了,可查看官方文档 Controller Manager,下面是我对controller-manager源码阅读总结  入口 入口: cmd&#x2F;kube-controller-manager&#x2F;controller-manager.go  12345func main">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2024-07-29T16:00:00.000Z">
+<meta property="article:modified_time" content="2026-07-27T09:08:39.018Z">
+<meta property="article:author" content="Falser">
+<meta property="article:tag" content="Kubernetes controller-manager">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>Kubernetes controller-manager源码学习 - Falser&#39;s Blog</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"falser101.github.io","root":"/","version":"1.9.9","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"expand_all":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"openkounter":{"server_url":"https://open-kounter.mintimate.cn","path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Falser&#39;s Blog</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content (desktop) -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- Mobile grid menu overlay -->
+<div id="mobile-grid-menu" class="d-lg-none">
+  <div class="mobile-grid-menu-inner">
+    <div class="container">
+      <div class="row">
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-home-fill"></i>
+                  <span>首页</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/archives/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-archive-fill"></i>
+                  <span>归档</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/categories/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-category-fill"></i>
+                  <span>分类</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/tags/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-tags-fill"></i>
+                  <span>标签</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/about/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-user-fill"></i>
+                  <span>关于</span>
+                </div>
+              </a>
+            </div>
+          
+        
+        
+          <div class="col-4 mobile-grid-cell" id="mobile-search-btn">
+            <a href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <div class="mobile-grid-item">
+                <i class="iconfont icon-search"></i>
+                <span>搜索</span>
+              </div>
+            </a>
+          </div>
+        
+        
+          <div class="col-4 mobile-grid-cell" id="mobile-color-toggle-btn"
+               data-label-light="开灯"
+               data-label-dark="关灯">
+            <a href="javascript:;" aria-label="Color Toggle">
+              <div class="mobile-grid-item">
+                <i class="iconfont icon-dark" id="mobile-color-toggle-icon"></i>
+                <span id="mobile-color-toggle-label">关灯</span>
+              </div>
+            </a>
+          </div>
+        
+      </div>
+    </div>
+  </div>
+</div>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="Kubernetes controller-manager源码学习"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2024-07-30 00:00" pubdate>
+          2024年7月30日 凌晨
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          5.8k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          49 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">Kubernetes controller-manager源码学习</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <h2 id="Kubernetes-controller-manager"><a href="#Kubernetes-controller-manager" class="headerlink" title="Kubernetes controller-manager"></a>Kubernetes controller-manager</h2><blockquote>
+<p>关于ControllerManager 官方介绍的很详细了,可查看官方文档 <a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/concepts/architecture/controller/">Controller Manager</a>,下面是我对controller-manager源码阅读总结</p>
+</blockquote>
+<h3 id="入口"><a href="#入口" class="headerlink" title="入口"></a>入口</h3><blockquote>
+<p>入口: cmd&#x2F;kube-controller-manager&#x2F;controller-manager.go</p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">main</span><span class="hljs-params">()</span></span> &#123;<br>	command := app.NewControllerManagerCommand()<br>	code := cli.Run(command)<br>	os.Exit(code)<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>进入<code>app.NewControllerManagerCommand()</code>方法</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">NewControllerManagerCommand</span><span class="hljs-params">()</span></span> *cobra.Command &#123;<br>    ......<span class="hljs-comment">//省略</span><br>		RunE: <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">(cmd *cobra.Command, args []<span class="hljs-type">string</span>)</span></span> <span class="hljs-type">error</span> &#123;<br>			verflag.PrintAndExitIfRequested()<br><br>			<span class="hljs-comment">// Activate logging as soon as possible, after that</span><br>			<span class="hljs-comment">// show flags with the final logging configuration.</span><br>			<span class="hljs-keyword">if</span> err := logsapi.ValidateAndApply(s.Logs, utilfeature.DefaultFeatureGate); err != <span class="hljs-literal">nil</span> &#123;<br>				<span class="hljs-keyword">return</span> err<br>			&#125;<br>			cliflag.PrintFlags(cmd.Flags())<br><br>            <span class="hljs-comment">// 创建一个controller-manager的配置,将已知的controller和默认禁用的controller传入</span><br>			c, err := s.Config(KnownControllers(), ControllersDisabledByDefault(), ControllerAliases())<br>			<span class="hljs-keyword">if</span> err != <span class="hljs-literal">nil</span> &#123;<br>				<span class="hljs-keyword">return</span> err<br>			&#125;<br><br>			<span class="hljs-comment">// add feature enablement metrics</span><br>			fg := s.ComponentGlobalsRegistry.FeatureGateFor(utilversion.DefaultKubeComponent)<br>			fg.(featuregate.MutableFeatureGate).AddMetrics()<br>			<span class="hljs-keyword">return</span> Run(context.Background(), c.Complete())<br>		&#125;,<br>    ......<span class="hljs-comment">//省略</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h3 id="Run方法"><a href="#Run方法" class="headerlink" title="Run方法"></a>Run方法</h3><p>进入<code>Run(context.Background(), c.Complete())</code>方法</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-comment">// Run runs the KubeControllerManagerOptions.</span><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">Run</span><span class="hljs-params">(ctx context.Context, c *config.CompletedConfig)</span></span> <span class="hljs-type">error</span> &#123;<br>	......<span class="hljs-comment">//省略</span><br>	<span class="hljs-comment">// Start 事件处理管道。</span><br>	c.EventBroadcaster.StartStructuredLogging(<span class="hljs-number">0</span>)<br>	c.EventBroadcaster.StartRecordingToSink(&amp;v1core.EventSinkImpl&#123;Interface: c.Client.CoreV1().Events(<span class="hljs-string">&quot;&quot;</span>)&#125;)<br>	<span class="hljs-keyword">defer</span> c.EventBroadcaster.Shutdown()<br><br>    ......<span class="hljs-comment">//省略</span><br>	<span class="hljs-comment">// Start controller manager Http 服务</span><br>	<span class="hljs-comment">// unsecuredMux is the handler for these controller *after* authn/authz filters have been applied</span><br>	<span class="hljs-keyword">var</span> unsecuredMux *mux.PathRecorderMux<br><br>	clientBuilder, rootClientBuilder := createClientBuilders(c)<br><br>	saTokenControllerDescriptor := newServiceAccountTokenControllerDescriptor(rootClientBuilder)<br><br>    <span class="hljs-comment">// 启动函数</span><br>	run := <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">(ctx context.Context, controllerDescriptors <span class="hljs-keyword">map</span>[<span class="hljs-type">string</span>]*ControllerDescriptor)</span></span> &#123;<br>		controllerContext, err := CreateControllerContext(ctx, c, rootClientBuilder, clientBuilder)<br>		<span class="hljs-keyword">if</span> err != <span class="hljs-literal">nil</span> &#123;<br>			logger.Error(err, <span class="hljs-string">&quot;Error building controller context&quot;</span>)<br>			klog.FlushAndExit(klog.ExitFlushTimeout, <span class="hljs-number">1</span>)<br>		&#125;<br><br>		<span class="hljs-keyword">if</span> err := StartControllers(ctx, controllerContext, controllerDescriptors, unsecuredMux, healthzHandler); err != <span class="hljs-literal">nil</span> &#123;<br>			logger.Error(err, <span class="hljs-string">&quot;Error starting controllers&quot;</span>)<br>			klog.FlushAndExit(klog.ExitFlushTimeout, <span class="hljs-number">1</span>)<br>		&#125;<br><br>		controllerContext.InformerFactory.Start(stopCh)<br>		controllerContext.ObjectOrMetadataInformerFactory.Start(stopCh)<br>		<span class="hljs-built_in">close</span>(controllerContext.InformersStarted)<br><br>		&lt;-ctx.Done()<br>	&#125;<br><br>	<span class="hljs-comment">// 无选举,直接执行</span><br>	<span class="hljs-keyword">if</span> !c.ComponentConfig.Generic.LeaderElection.LeaderElect &#123;<br>        <span class="hljs-comment">// 所有的控制器描述</span><br>		controllerDescriptors := NewControllerDescriptors()<br>		controllerDescriptors[names.ServiceAccountTokenController] = saTokenControllerDescriptor<br>		run(ctx, controllerDescriptors)<br>		<span class="hljs-keyword">return</span> <span class="hljs-literal">nil</span><br>	&#125;<br>    <span class="hljs-comment">// 选举流程</span><br><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h3 id="注册控制器"><a href="#注册控制器" class="headerlink" title="注册控制器"></a>注册控制器</h3><p><code>NewControllerDescriptors()</code>方法注册了所有的内置controller,返回命名控制器组与包含InitFunc的ControllerDescriptor包装器对象配对 map;所有的控制器都必须满足共同的约束</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-comment">// NewControllerDescriptors is a public map of named controller groups (you can start more than one in an init func)</span><br><span class="hljs-comment">// paired to their ControllerDescriptor wrapper object that includes InitFunc.</span><br><span class="hljs-comment">// This allows for structured downstream composition and subdivision.</span><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">NewControllerDescriptors</span><span class="hljs-params">()</span></span> <span class="hljs-keyword">map</span>[<span class="hljs-type">string</span>]*ControllerDescriptor &#123;<br>	controllers := <span class="hljs-keyword">map</span>[<span class="hljs-type">string</span>]*ControllerDescriptor&#123;&#125;<br>	aliases := sets.NewString()<br><br>	register := <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">(controllerDesc *ControllerDescriptor)</span></span> &#123;<br>		<span class="hljs-keyword">if</span> controllerDesc == <span class="hljs-literal">nil</span> &#123;<br>			<span class="hljs-built_in">panic</span>(<span class="hljs-string">&quot;received nil controller for a registration&quot;</span>)<br>		&#125;<br>		name := controllerDesc.Name()<br>		<span class="hljs-keyword">if</span> <span class="hljs-built_in">len</span>(name) == <span class="hljs-number">0</span> &#123;<br>			<span class="hljs-built_in">panic</span>(<span class="hljs-string">&quot;received controller without a name for a registration&quot;</span>)<br>		&#125;<br>		<span class="hljs-keyword">if</span> _, found := controllers[name]; found &#123;<br>			<span class="hljs-built_in">panic</span>(fmt.Sprintf(<span class="hljs-string">&quot;controller name %q was registered twice&quot;</span>, name))<br>		&#125;<br>		<span class="hljs-keyword">if</span> controllerDesc.GetInitFunc() == <span class="hljs-literal">nil</span> &#123;<br>			<span class="hljs-built_in">panic</span>(fmt.Sprintf(<span class="hljs-string">&quot;controller %q does not have an init function&quot;</span>, name))<br>		&#125;<br><br>		<span class="hljs-keyword">for</span> _, alias := <span class="hljs-keyword">range</span> controllerDesc.GetAliases() &#123;<br>			<span class="hljs-keyword">if</span> aliases.Has(alias) &#123;<br>				<span class="hljs-built_in">panic</span>(fmt.Sprintf(<span class="hljs-string">&quot;controller %q has a duplicate alias %q&quot;</span>, name, alias))<br>			&#125;<br>			aliases.Insert(alias)<br>		&#125;<br><br>		controllers[name] = controllerDesc<br>	&#125;<br><br>	<span class="hljs-comment">// First add &quot;special&quot; controllers that aren&#x27;t initialized normally. These controllers cannot be initialized</span><br>	<span class="hljs-comment">// in the main controller loop initialization, so we add them here only for the metadata and duplication detection.</span><br>	<span class="hljs-comment">// app.ControllerDescriptor#RequiresSpecialHandling should return true for such controllers</span><br>	<span class="hljs-comment">// The only known special case is the ServiceAccountTokenController which *must* be started</span><br>	<span class="hljs-comment">// first to ensure that the SA tokens for future controllers will exist. Think very carefully before adding new</span><br>	<span class="hljs-comment">// special controllers.</span><br>    ......<span class="hljs-comment">//省略</span><br>	register(newJobControllerDescriptor())<br>a<br>	<span class="hljs-keyword">return</span> controllers<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>以JobController为例，其initFunc函数为startJobController，其定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">newJobControllerDescriptor</span><span class="hljs-params">()</span></span> *ControllerDescriptor &#123;<br>	<span class="hljs-keyword">return</span> &amp;ControllerDescriptor&#123;<br>		name:     names.JobController,<br>		aliases:  []<span class="hljs-type">string</span>&#123;<span class="hljs-string">&quot;job&quot;</span>&#125;,<br>		initFunc: startJobController,<br>	&#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>继续进入<code>startJobController</code>方法</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">startJobController</span><span class="hljs-params">(ctx context.Context, controllerContext ControllerContext, controllerName <span class="hljs-type">string</span>)</span></span> (controller.Interface, <span class="hljs-type">bool</span>, <span class="hljs-type">error</span>) &#123;<br>	jobController, err := job.NewController(<br>		ctx,<br>		controllerContext.InformerFactory.Core().V1().Pods(),<br>		controllerContext.InformerFactory.Batch().V1().Jobs(),<br>		controllerContext.ClientBuilder.ClientOrDie(<span class="hljs-string">&quot;job-controller&quot;</span>),<br>	)<br>	<span class="hljs-keyword">if</span> err != <span class="hljs-literal">nil</span> &#123;<br>		<span class="hljs-keyword">return</span> <span class="hljs-literal">nil</span>, <span class="hljs-literal">true</span>, fmt.Errorf(<span class="hljs-string">&quot;creating Job controller: %v&quot;</span>, err)<br>	&#125;<br>	<span class="hljs-keyword">go</span> jobController.Run(ctx, <span class="hljs-type">int</span>(controllerContext.ComponentConfig.JobController.ConcurrentJobSyncs))<br>	<span class="hljs-keyword">return</span> <span class="hljs-literal">nil</span>, <span class="hljs-literal">true</span>, <span class="hljs-literal">nil</span><br>&#125;<br></code></pre></td></tr></table></figure>
+<p>这里JobController的创建是通过<code>job.NewController</code>方法,,加载了Pod 和 Job的Informer，然后启动了JobController的Run方法，启动了一个goroutine来执行JobController的Run方法。</p>
+<p>ControllerManager的启动流程大致就是这样，具体的实现逻辑就不再赘述了，可以自行查看源码。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>Kubernetes controller-manager 的启动流程包括：初始化配置、注册控制器、启动事件处理管道和 HTTP 服务，并通过控制器描述对象注册和启动所有控制器。</p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/k8s/" class="category-chain-item">k8s</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/Kubernetes-controller-manager/" class="print-no-link">#Kubernetes controller-manager</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>Kubernetes controller-manager源码学习</div>
+      <div>https://falser101.github.io/2024/07/30/2024/kubernetes Controller-Manager源码分析/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>falser101</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2024年7月30日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2024/08/14/2024/02.iptables%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5/" title="iptables基本概念">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">iptables基本概念</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2024/07/28/2024/kubernetesScheduler%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" title="Kubernetes Scheduler源码分析">
+                        <span class="hidden-mobile">Kubernetes Scheduler源码分析</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+    <div id="giscus" class="giscus"></div>
+    <script type="text/javascript">
+      Fluid.utils.loadComments('#giscus', function() {
+        var options = {"repo":"falser101/falser101.github.io","repo-id":"R_kgDOMveGqw","category":"Announcements","category-id":"DIC_kwDOMveGq84ClgWQ","theme-light":"light","theme-dark":"dark","mapping":"pathname","reactions-enabled":1,"emit-metadata":0,"input-position":"top","lang":"zh-CN"};
+        var attributes = {};
+        for (let option in options) {
+          if (!option.startsWith('theme-')) {
+            var key = option.startsWith('data-') ? option : 'data-' + option;
+            attributes[key] = options[option];
+          }
+        }
+        var light = 'light';
+        var dark = 'dark';
+        window.GiscusThemeLight = light;
+        window.GiscusThemeDark = dark;
+        attributes['data-theme'] = document.documentElement.getAttribute('data-user-color-scheme') === 'dark' ? dark : light;
+        for (let attribute in attributes) {
+          var value = attributes[attribute];
+          if (value === undefined || value === null || value === '') {
+            delete attributes[attribute];
+          }
+        }
+        var s = document.createElement('script');
+        s.setAttribute('src', 'https://giscus.app/client.js');
+        s.setAttribute('crossorigin', 'anonymous');
+        for (let attribute in attributes) {
+          s.setAttribute(attribute, attributes[attribute]);
+        }
+        var ss = document.getElementsByTagName('script');
+        var e = ss.length > 0 ? ss[ss.length - 1] : document.head || document.documentElement;
+        e.parentNode.insertBefore(s, e.nextSibling);
+      });
+    </script>
+    <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    function isExpandAllEnabled() {
+      return CONFIG.toc && CONFIG.toc.expand_all === true;
+    }
+    function expandAllToc() {
+      if (!isExpandAllEnabled()) { return; }
+      jQuery('#toc-body .tocbot-is-collapsed').removeClass('tocbot-is-collapsed');
+    }
+    function updateTocToggle($li, $childList) {
+      var $toggle = $li.children('.toc-toggle');
+      if ($toggle.length === 0) { return; }
+      var collapsed = $childList.hasClass('tocbot-is-collapsed');
+      $toggle
+        .toggleClass('toc-toggle-collapsed', collapsed)
+        .toggleClass('toc-toggle-expanded', !collapsed);
+    }
+    function bindTocToggle() {
+      if (!isExpandAllEnabled()) { return; }
+      jQuery('#toc-body .toc-list-item').each(function() {
+        var $li = jQuery(this);
+        var $childList = $li.children('ol');
+        if ($childList.length === 0) {
+          if ($li.children('.toc-toggle').length === 0) {
+            $li.prepend('<span class="toc-toggle toc-toggle-placeholder" aria-hidden="true">›</span>');
+          }
+          return;
+        }
+
+        if ($li.children('.toc-toggle').length === 0) {
+          $li.prepend('<span class="toc-toggle toc-toggle-expanded" aria-hidden="true">›</span>');
+        }
+        updateTocToggle($li, $childList);
+      });
+      jQuery('#toc-body').off('click.tocToggle').on('click.tocToggle', '.toc-toggle', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var $li = jQuery(this).parent('.toc-list-item');
+        var $childList = $li.children('ol');
+        if ($childList.length === 0) { return; }
+        $childList.toggleClass('tocbot-is-collapsed');
+        updateTocToggle($li, $childList);
+      });
+      if (!window.__tocToggleObserver) {
+        window.__tocToggleObserver = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.type !== 'attributes' || mutation.attributeName !== 'class') { return; }
+            var $list = jQuery(mutation.target);
+            var $li = $list.parent('.toc-list-item');
+            if ($li.length === 0) { return; }
+            updateTocToggle($li, $list);
+          });
+        });
+        jQuery('#toc-body ol').each(function() {
+          window.__tocToggleObserver.observe(this, { attributes: true });
+        });
+      }
+    }
+    var tocConfig = Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc);
+    if (isExpandAllEnabled()) {
+      tocConfig.collapseDepth = 6;
+    }
+    window.tocbot.init(tocConfig);
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+    expandAllToc();
+    bindTocToggle();
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+        expandAllToc();
+        bindTocToggle();
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
