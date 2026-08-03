@@ -27,7 +27,7 @@
 <meta property="og:description" content="主线起点。搞清你在代码里写 producer.send(&quot;hello&quot;) 之后，这一条消息在客户端内部经历了什么，直到变成网络上的字节流。  学习目标 理解 Pulsar 客户端”同步 API 是异步的薄包装”这一贯穿全栈的模式 掌握 batching（批量）、背压、有序性、sequenceId 四个机制在发送路径上的落点 看懂协议帧的二进制结构  相关代码（按阅读顺序）">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-07-30T16:00:00.000Z">
-<meta property="article:modified_time" content="2026-08-03T06:39:23.493Z">
+<meta property="article:modified_time" content="2026-08-03T06:51:44.487Z">
 <meta property="article:author" content="Falser">
 <meta property="article:tag" content="pulsar">
 <meta property="article:tag" content="client">
@@ -489,7 +489,7 @@
 <p>TCP 是字节流不是消息流，接收方天然不知道”一条消息在哪结束”。长度前缀用来划帧：<br>读满 TOTAL_SIZE 字节即一个完整帧，可直接反序列化，避免半包&#x2F;粘包问题。</p>
 </details>
 
-<h2 id="下一课预告"><a href="#下一课预告" class="headerlink" title="下一课预告"></a>下一课预告</h2><p>消息变成字节流进入 TCP 后，broker 端 <code>ServerCnx</code> 收到它 → 还原 → 交给 <code>BrokerService</code>（管家）和<br><code>PersistentTopic</code> → 去重 → 落盘。见 <a href="02.Broker%E6%8E%A5%E6%94%B6%E9%93%BE%E8%B7%AF.md">第 02 课</a>。</p>
+<h2 id="下一课预告"><a href="#下一课预告" class="headerlink" title="下一课预告"></a>下一课预告</h2><p>消息变成字节流进入 TCP 后，broker 端 <code>ServerCnx</code> 收到它 → 还原 → 交给 <code>BrokerService</code>（管家）和<br><code>PersistentTopic</code> → 去重 → 落盘。见 <a href="/2026/08/01/2026/02.Broker%E6%8E%A5%E6%94%B6%E9%93%BE%E8%B7%AF/" title="Pulsar Broker 接收链路">第 02 课</a>。</p>
 
                 
               </div>

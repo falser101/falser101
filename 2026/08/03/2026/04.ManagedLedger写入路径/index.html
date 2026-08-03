@@ -27,7 +27,7 @@
 <meta property="og:description" content="上一课结尾的问题：broker 调用的 asyncAddEntry() 到底做了什么？本课完整走一遍写入路径：从 ManagedLedgerImpl.asyncAddEntry 到 OpAddEntry，再到真正写进 BookKeeper、分配位置、通知上层。  学习目标 掌握写入路径的完整调用链 理解有序性的三层保险：单线程入口 + FIFO 队列 + 完成也串行 搞清楚”单线程”的真相：共享">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-08-02T16:00:00.000Z">
-<meta property="article:modified_time" content="2026-08-03T06:12:49.711Z">
+<meta property="article:modified_time" content="2026-08-03T06:51:44.487Z">
 <meta property="article:author" content="Falser">
 <meta property="article:tag" content="pulsar">
 <meta property="article:tag" content="managed-ledger">
@@ -511,7 +511,7 @@
 <p>不是。它是 BookKeeper 客户端主工作池（<code>bookKeeper.getMainWorkerPool()</code>，一个 <code>OrderedExecutor</code>）<br>里的一条线程，通过 <code>chooseThread(ML名字)</code> 按 <code>hash(名字) % numThreads</code> 绑定。池子共 N 条线程<br>（<code>numWorkerThreads</code> 配置，默认 CPU 核数），broker 内所有 ML 共享；同 ML 永远落在同一条线程上，<br>不同 ML 可能共线程但互不破坏各自顺序。</p>
 </details>
 
-<h2 id="下一课预告"><a href="#下一课预告" class="headerlink" title="下一课预告"></a>下一课预告</h2><p><code>ledgerClosed</code> 之后发生什么？ledger 为什么要轮转？一个 topic 的数据最终在磁盘上长什么样？<br>见 <a href="lesson-05-mledger-rollover.md">第 05 课</a>（待编写）。</p>
+<h2 id="下一课预告"><a href="#下一课预告" class="headerlink" title="下一课预告"></a>下一课预告</h2><p><code>ledgerClosed</code> 之后发生什么？ledger 为什么要轮转？一个 topic 的数据最终在磁盘上长什么样？<br>见第 05 课（待编写）。</p>
 
                 
               </div>

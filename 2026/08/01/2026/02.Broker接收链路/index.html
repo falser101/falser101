@@ -27,7 +27,7 @@
 <meta property="og:description" content="第一课的字节流到达 broker 后，ServerCnx 如何还原 SEND 命令，BrokerService（管家）如何管理 topic，消息最终在 PersistentTopic 里通过检查与去重，进入存储层。  学习目标 认识 BrokerService：broker 端所有 topic 的”登记处”和”加载器” 掌握 producer 注册（handleProducer）与消息发布（ha">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-07-31T16:00:00.000Z">
-<meta property="article:modified_time" content="2026-08-03T06:39:23.493Z">
+<meta property="article:modified_time" content="2026-08-03T06:51:44.487Z">
 <meta property="article:author" content="Falser">
 <meta property="article:tag" content="pulsar">
 <meta property="article:tag" content="broker">
@@ -505,7 +505,7 @@
 <p>“无法判定是否重复”时若落盘，而这条消息实际是重连前的重发，就会产生重复消息且无法挽回<br>（存储层不会二次检查）。报错让客户端重试，等去重状态恢复（producer 重新注册完成）后再判定，<br>宁可暂时失败，不冒重复风险。</p>
 </details>
 
-<h2 id="下一课预告"><a href="#下一课预告" class="headerlink" title="下一课预告"></a>下一课预告</h2><p><code>asyncAddEntry()</code> 走进 <code>managed-ledger</code> 模块：为什么 BookKeeper 之上还要一层、四个核心抽象、<br>topic 的数据最终长什么样。见 <a href="03.ManagedLedger%E5%AE%9A%E4%BD%8D%E4%B8%8E%E6%95%B0%E6%8D%AE%E6%A8%A1%E5%9E%8B.md">第 03 课</a>。</p>
+<h2 id="下一课预告"><a href="#下一课预告" class="headerlink" title="下一课预告"></a>下一课预告</h2><p><code>asyncAddEntry()</code> 走进 <code>managed-ledger</code> 模块：为什么 BookKeeper 之上还要一层、四个核心抽象、<br>topic 的数据最终长什么样。见 <a href="/2026/08/02/2026/03.ManagedLedger%E5%AE%9A%E4%BD%8D%E4%B8%8E%E6%95%B0%E6%8D%AE%E6%A8%A1%E5%9E%8B/" title="Pulsar Managed-Ledger ① 定位与数据模型">第 03 课</a>。</p>
 
                 
               </div>
